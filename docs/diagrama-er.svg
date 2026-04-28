@@ -1,0 +1,290 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 1100" font-family="Inter, system-ui, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#e63946"/>
+    </marker>
+    <marker id="one" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto">
+      <line x1="2" y1="2" x2="2" y2="12" stroke="#e63946" stroke-width="2"/>
+      <line x1="6" y1="2" x2="6" y2="12" stroke="#e63946" stroke-width="2"/>
+    </marker>
+    <marker id="many" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto">
+      <line x1="2" y1="7" x2="12" y2="2" stroke="#e63946" stroke-width="2"/>
+      <line x1="2" y1="7" x2="12" y2="7" stroke="#e63946" stroke-width="2"/>
+      <line x1="2" y1="7" x2="12" y2="12" stroke="#e63946" stroke-width="2"/>
+    </marker>
+    <style>
+      .tbl-head { fill: #e63946; }
+      .tbl-head-yellow { fill: #f4b01d; }
+      .tbl-body { fill: white; stroke: #d4d4d8; stroke-width: 1.5; }
+      .tbl-body-dark { fill: #1a1a1a; stroke: #3f3f46; }
+      .tbl-title { fill: white; font-weight: 700; font-size: 14px; }
+      .col-name { fill: #1f2937; font-size: 11px; font-family: monospace; }
+      .col-type { fill: #6b7280; font-size: 10px; font-family: monospace; text-anchor: end; }
+      .pk { fill: #e63946; font-weight: 700; }
+      .fk { fill: #f4b01d; font-weight: 700; }
+      .rel { stroke: #e63946; stroke-width: 2; fill: none; }
+      .rel-label { fill: #e63946; font-size: 10px; font-weight: 600; }
+      .title-main { fill: #1f2937; font-size: 22px; font-weight: 700; }
+      .subtitle { fill: #6b7280; font-size: 12px; }
+      .legend-box { fill: white; stroke: #d4d4d8; }
+    </style>
+  </defs>
+
+  <!-- Background grid -->
+  <rect width="1400" height="1100" fill="#fafafa"/>
+
+  <!-- Title -->
+  <text x="40" y="40" class="title-main">Armazém Express · Modelo Entidade-Relação</text>
+  <text x="40" y="62" class="subtitle">Base de dados SQLite · 10 tabelas · Multi-tenant via company_id</text>
+
+  <!-- ========== PLANS (top left) ========== -->
+  <g transform="translate(40, 90)">
+    <rect width="240" height="30" rx="8" class="tbl-head-yellow"/>
+    <text x="12" y="20" class="tbl-title" fill="#1a1a1a">📋 plans</text>
+    <rect y="30" width="240" height="145" rx="0" class="tbl-body"/>
+    <g font-size="11">
+      <text x="12" y="50" class="col-name pk">🔑 id</text>          <text x="228" y="50" class="col-type">TEXT</text>
+      <text x="12" y="70" class="col-name">name</text>               <text x="228" y="70" class="col-type">TEXT</text>
+      <text x="12" y="90" class="col-name">price</text>              <text x="228" y="90" class="col-type">REAL</text>
+      <text x="12" y="110" class="col-name">max_products</text>      <text x="228" y="110" class="col-type">INT</text>
+      <text x="12" y="130" class="col-name">max_employees</text>     <text x="228" y="130" class="col-type">INT</text>
+      <text x="12" y="150" class="col-name">features</text>          <text x="228" y="150" class="col-type">JSON</text>
+      <text x="12" y="170" class="col-name">description</text>       <text x="228" y="170" class="col-type">TEXT</text>
+    </g>
+  </g>
+
+  <!-- ========== COMPANIES ========== -->
+  <g transform="translate(380, 90)">
+    <rect width="240" height="30" rx="8" class="tbl-head"/>
+    <text x="12" y="20" class="tbl-title">🏢 companies</text>
+    <rect y="30" width="240" height="165" class="tbl-body"/>
+    <g font-size="11">
+      <text x="12" y="50" class="col-name pk">🔑 id</text>                  <text x="228" y="50" class="col-type">TEXT</text>
+      <text x="12" y="70" class="col-name">name</text>                       <text x="228" y="70" class="col-type">TEXT</text>
+      <text x="12" y="90" class="col-name">email</text>                      <text x="228" y="90" class="col-type">TEXT UNIQUE</text>
+      <text x="12" y="110" class="col-name fk">🔗 plan_id</text>             <text x="228" y="110" class="col-type">TEXT</text>
+      <text x="12" y="130" class="col-name">subscription_status</text>       <text x="228" y="130" class="col-type">TEXT</text>
+      <text x="12" y="150" class="col-name">subscription_ends</text>         <text x="228" y="150" class="col-type">DATETIME</text>
+      <text x="12" y="170" class="col-name">created_at</text>                <text x="228" y="170" class="col-type">DATETIME</text>
+    </g>
+  </g>
+
+  <!-- ========== USERS ========== -->
+  <g transform="translate(720, 90)">
+    <rect width="240" height="30" rx="8" class="tbl-head"/>
+    <text x="12" y="20" class="tbl-title">👤 users</text>
+    <rect y="30" width="240" height="165" class="tbl-body"/>
+    <g font-size="11">
+      <text x="12" y="50" class="col-name pk">🔑 id</text>               <text x="228" y="50" class="col-type">TEXT</text>
+      <text x="12" y="70" class="col-name fk">🔗 company_id</text>       <text x="228" y="70" class="col-type">TEXT</text>
+      <text x="12" y="90" class="col-name">name</text>                    <text x="228" y="90" class="col-type">TEXT</text>
+      <text x="12" y="110" class="col-name">email</text>                  <text x="228" y="110" class="col-type">TEXT UNIQUE</text>
+      <text x="12" y="130" class="col-name">password_hash</text>          <text x="228" y="130" class="col-type">TEXT</text>
+      <text x="12" y="150" class="col-name">role</text>                   <text x="228" y="150" class="col-type">TEXT</text>
+      <text x="12" y="170" class="col-name">active</text>                 <text x="228" y="170" class="col-type">INT</text>
+    </g>
+  </g>
+
+  <!-- ========== CATEGORIES ========== -->
+  <g transform="translate(1060, 90)">
+    <rect width="240" height="30" rx="8" class="tbl-head-yellow"/>
+    <text x="12" y="20" class="tbl-title" fill="#1a1a1a">🏷️ categories</text>
+    <rect y="30" width="240" height="105" class="tbl-body"/>
+    <g font-size="11">
+      <text x="12" y="50" class="col-name pk">🔑 id</text>             <text x="228" y="50" class="col-type">TEXT</text>
+      <text x="12" y="70" class="col-name fk">🔗 company_id</text>     <text x="228" y="70" class="col-type">TEXT</text>
+      <text x="12" y="90" class="col-name">name</text>                  <text x="228" y="90" class="col-type">TEXT</text>
+      <text x="12" y="110" class="col-name">created_at</text>           <text x="228" y="110" class="col-type">DATETIME</text>
+    </g>
+  </g>
+
+  <!-- ========== PRODUCTS (center) ========== -->
+  <g transform="translate(380, 330)">
+    <rect width="260" height="30" rx="8" class="tbl-head"/>
+    <text x="12" y="20" class="tbl-title">📦 products</text>
+    <rect y="30" width="260" height="265" class="tbl-body"/>
+    <g font-size="11">
+      <text x="12" y="50" class="col-name pk">🔑 id</text>              <text x="248" y="50" class="col-type">TEXT</text>
+      <text x="12" y="70" class="col-name fk">🔗 company_id</text>      <text x="248" y="70" class="col-type">TEXT</text>
+      <text x="12" y="90" class="col-name">name</text>                   <text x="248" y="90" class="col-type">TEXT</text>
+      <text x="12" y="110" class="col-name">description</text>           <text x="248" y="110" class="col-type">TEXT</text>
+      <text x="12" y="130" class="col-name">category</text>              <text x="248" y="130" class="col-type">TEXT</text>
+      <text x="12" y="150" class="col-name">sku</text>                   <text x="248" y="150" class="col-type">TEXT UNIQUE</text>
+      <text x="12" y="170" class="col-name">qr_code</text>               <text x="248" y="170" class="col-type">TEXT UNIQUE</text>
+      <text x="12" y="190" class="col-name">quantity</text>              <text x="248" y="190" class="col-type">INT</text>
+      <text x="12" y="210" class="col-name">min_stock</text>             <text x="248" y="210" class="col-type">INT</text>
+      <text x="12" y="230" class="col-name">price</text>                 <text x="248" y="230" class="col-type">REAL</text>
+      <text x="12" y="250" class="col-name">shelf</text>                 <text x="248" y="250" class="col-type">TEXT</text>
+      <text x="12" y="270" class="col-name">supplier</text>              <text x="248" y="270" class="col-type">TEXT</text>
+      <text x="12" y="290" class="col-name">created_at</text>            <text x="248" y="290" class="col-type">DATETIME</text>
+    </g>
+  </g>
+
+  <!-- ========== ORDERS ========== -->
+  <g transform="translate(720, 330)">
+    <rect width="260" height="30" rx="8" class="tbl-head"/>
+    <text x="12" y="20" class="tbl-title">🚚 orders</text>
+    <rect y="30" width="260" height="285" class="tbl-body"/>
+    <g font-size="11">
+      <text x="12" y="50" class="col-name pk">🔑 id</text>                    <text x="248" y="50" class="col-type">TEXT</text>
+      <text x="12" y="70" class="col-name fk">🔗 company_id</text>            <text x="248" y="70" class="col-type">TEXT</text>
+      <text x="12" y="90" class="col-name">tracking_number</text>              <text x="248" y="90" class="col-type">TEXT UNIQUE</text>
+      <text x="12" y="110" class="col-name">recipient_name</text>              <text x="248" y="110" class="col-type">TEXT</text>
+      <text x="12" y="130" class="col-name">recipient_address</text>           <text x="248" y="130" class="col-type">TEXT</text>
+      <text x="12" y="150" class="col-name">recipient_city</text>              <text x="248" y="150" class="col-type">TEXT</text>
+      <text x="12" y="170" class="col-name">recipient_postal_code</text>       <text x="248" y="170" class="col-type">TEXT</text>
+      <text x="12" y="190" class="col-name">recipient_phone</text>             <text x="248" y="190" class="col-type">TEXT</text>
+      <text x="12" y="210" class="col-name">recipient_email</text>             <text x="248" y="210" class="col-type">TEXT</text>
+      <text x="12" y="230" class="col-name">status</text>                       <text x="248" y="230" class="col-type">TEXT</text>
+      <text x="12" y="250" class="col-name">total_value</text>                  <text x="248" y="250" class="col-type">REAL</text>
+      <text x="12" y="270" class="col-name">notes</text>                        <text x="248" y="270" class="col-type">TEXT</text>
+      <text x="12" y="290" class="col-name fk">🔗 created_by</text>            <text x="248" y="290" class="col-type">TEXT</text>
+      <text x="12" y="310" class="col-name">created_at</text>                   <text x="248" y="310" class="col-type">DATETIME</text>
+    </g>
+  </g>
+
+  <!-- ========== ORDER_ITEMS ========== -->
+  <g transform="translate(1060, 330)">
+    <rect width="240" height="30" rx="8" class="tbl-head-yellow"/>
+    <text x="12" y="20" class="tbl-title" fill="#1a1a1a">🛒 order_items</text>
+    <rect y="30" width="240" height="145" class="tbl-body"/>
+    <g font-size="11">
+      <text x="12" y="50" class="col-name pk">🔑 id</text>             <text x="228" y="50" class="col-type">TEXT</text>
+      <text x="12" y="70" class="col-name fk">🔗 order_id</text>       <text x="228" y="70" class="col-type">TEXT</text>
+      <text x="12" y="90" class="col-name fk">🔗 product_id</text>     <text x="228" y="90" class="col-type">TEXT</text>
+      <text x="12" y="110" class="col-name">product_name</text>         <text x="228" y="110" class="col-type">TEXT</text>
+      <text x="12" y="130" class="col-name">quantity</text>             <text x="228" y="130" class="col-type">INT</text>
+      <text x="12" y="150" class="col-name">unit_price</text>           <text x="228" y="150" class="col-type">REAL</text>
+      <text x="12" y="170" class="col-name">subtotal</text>             <text x="228" y="170" class="col-type">REAL</text>
+    </g>
+  </g>
+
+  <!-- ========== TRACKING_EVENTS ========== -->
+  <g transform="translate(720, 690)">
+    <rect width="260" height="30" rx="8" class="tbl-head"/>
+    <text x="12" y="20" class="tbl-title">📍 tracking_events</text>
+    <rect y="30" width="260" height="125" class="tbl-body"/>
+    <g font-size="11">
+      <text x="12" y="50" class="col-name pk">🔑 id</text>           <text x="248" y="50" class="col-type">TEXT</text>
+      <text x="12" y="70" class="col-name fk">🔗 order_id</text>     <text x="248" y="70" class="col-type">TEXT</text>
+      <text x="12" y="90" class="col-name">status</text>              <text x="248" y="90" class="col-type">TEXT</text>
+      <text x="12" y="110" class="col-name">location</text>           <text x="248" y="110" class="col-type">TEXT</text>
+      <text x="12" y="130" class="col-name">description</text>        <text x="248" y="130" class="col-type">TEXT</text>
+      <text x="12" y="150" class="col-name">created_at</text>         <text x="248" y="150" class="col-type">DATETIME</text>
+    </g>
+  </g>
+
+  <!-- ========== STOCK_MOVEMENTS ========== -->
+  <g transform="translate(380, 690)">
+    <rect width="260" height="30" rx="8" class="tbl-head-yellow"/>
+    <text x="12" y="20" class="tbl-title" fill="#1a1a1a">📊 stock_movements</text>
+    <rect y="30" width="260" height="165" class="tbl-body"/>
+    <g font-size="11">
+      <text x="12" y="50" class="col-name pk">🔑 id</text>             <text x="248" y="50" class="col-type">TEXT</text>
+      <text x="12" y="70" class="col-name fk">🔗 product_id</text>     <text x="248" y="70" class="col-type">TEXT</text>
+      <text x="12" y="90" class="col-name fk">🔗 user_id</text>        <text x="248" y="90" class="col-type">TEXT</text>
+      <text x="12" y="110" class="col-name">type</text>                 <text x="248" y="110" class="col-type">TEXT</text>
+      <text x="12" y="130" class="col-name">quantity</text>             <text x="248" y="130" class="col-type">INT</text>
+      <text x="12" y="150" class="col-name">reason</text>               <text x="248" y="150" class="col-type">TEXT</text>
+      <text x="12" y="170" class="col-name">reference_id</text>         <text x="248" y="170" class="col-type">TEXT</text>
+      <text x="12" y="190" class="col-name">created_at</text>           <text x="248" y="190" class="col-type">DATETIME</text>
+    </g>
+  </g>
+
+  <!-- ========== NOTIFICATIONS ========== -->
+  <g transform="translate(1060, 690)">
+    <rect width="240" height="30" rx="8" class="tbl-head"/>
+    <text x="12" y="20" class="tbl-title">🔔 notifications</text>
+    <rect y="30" width="240" height="145" class="tbl-body"/>
+    <g font-size="11">
+      <text x="12" y="50" class="col-name pk">🔑 id</text>             <text x="228" y="50" class="col-type">TEXT</text>
+      <text x="12" y="70" class="col-name fk">🔗 company_id</text>     <text x="228" y="70" class="col-type">TEXT</text>
+      <text x="12" y="90" class="col-name">type</text>                  <text x="228" y="90" class="col-type">TEXT</text>
+      <text x="12" y="110" class="col-name">title</text>                <text x="228" y="110" class="col-type">TEXT</text>
+      <text x="12" y="130" class="col-name">message</text>              <text x="228" y="130" class="col-type">TEXT</text>
+      <text x="12" y="150" class="col-name">read</text>                 <text x="228" y="150" class="col-type">INT</text>
+      <text x="12" y="170" class="col-name">created_at</text>           <text x="228" y="170" class="col-type">DATETIME</text>
+    </g>
+  </g>
+
+  <!-- ========== RELATIONSHIPS ========== -->
+  <!-- plans → companies -->
+  <path d="M 280,165 L 380,165" class="rel" marker-end="url(#arrow)"/>
+  <text x="300" y="160" class="rel-label">1 : N</text>
+
+  <!-- companies → users -->
+  <path d="M 620,165 L 720,165" class="rel" marker-end="url(#arrow)"/>
+  <text x="640" y="160" class="rel-label">1 : N</text>
+
+  <!-- companies → categories -->
+  <path d="M 620,140 Q 840,140 960,120 L 1060,120" class="rel" marker-end="url(#arrow)"/>
+  <text x="880" y="110" class="rel-label">1 : N</text>
+
+  <!-- companies → products -->
+  <path d="M 500,260 L 500,330" class="rel" marker-end="url(#arrow)"/>
+  <text x="510" y="300" class="rel-label">1 : N</text>
+
+  <!-- companies → orders -->
+  <path d="M 620,250 Q 700,260 780,320 L 800,330" class="rel" marker-end="url(#arrow)"/>
+  <text x="680" y="300" class="rel-label">1 : N</text>
+
+  <!-- companies → notifications -->
+  <path d="M 620,190 Q 820,400 1180,690" class="rel" marker-end="url(#arrow)" stroke-dasharray="4,4"/>
+  <text x="1000" y="500" class="rel-label">1 : N</text>
+
+  <!-- orders → order_items -->
+  <path d="M 980,470 L 1060,415" class="rel" marker-end="url(#arrow)"/>
+  <text x="990" y="440" class="rel-label">1 : N</text>
+
+  <!-- products → order_items -->
+  <path d="M 640,440 Q 850,440 1060,440" class="rel" marker-end="url(#arrow)"/>
+  <text x="850" y="430" class="rel-label">1 : N</text>
+
+  <!-- orders → tracking_events -->
+  <path d="M 850,625 L 850,690" class="rel" marker-end="url(#arrow)"/>
+  <text x="860" y="665" class="rel-label">1 : N</text>
+
+  <!-- products → stock_movements -->
+  <path d="M 510,605 L 510,690" class="rel" marker-end="url(#arrow)"/>
+  <text x="520" y="650" class="rel-label">1 : N</text>
+
+  <!-- users → stock_movements -->
+  <path d="M 840,265 Q 700,500 590,690" class="rel" marker-end="url(#arrow)" stroke-dasharray="4,4"/>
+  <text x="720" y="480" class="rel-label">1 : N</text>
+
+  <!-- users → orders (created_by) -->
+  <path d="M 840,265 L 850,330" class="rel" marker-end="url(#arrow)"/>
+  <text x="840" y="300" class="rel-label">1 : N</text>
+
+  <!-- ========== LEGEND ========== -->
+  <g transform="translate(40, 900)">
+    <rect width="1320" height="170" rx="12" class="legend-box"/>
+    <text x="20" y="30" font-size="14" font-weight="700" fill="#1f2937">Legenda</text>
+
+    <!-- Cores -->
+    <rect x="20" y="45" width="20" height="20" rx="4" fill="#e63946"/>
+    <text x="50" y="60" font-size="12" fill="#1f2937">Tabela principal (dados de negócio)</text>
+
+    <rect x="20" y="75" width="20" height="20" rx="4" fill="#f4b01d"/>
+    <text x="50" y="90" font-size="12" fill="#1f2937">Tabela auxiliar (referência ou pivot)</text>
+
+    <!-- Símbolos -->
+    <text x="350" y="60" font-size="12" fill="#e63946" font-weight="700">🔑 PK</text>
+    <text x="400" y="60" font-size="12" fill="#1f2937">Chave primária (PRIMARY KEY)</text>
+
+    <text x="350" y="90" font-size="12" fill="#f4b01d" font-weight="700">🔗 FK</text>
+    <text x="400" y="90" font-size="12" fill="#1f2937">Chave estrangeira (FOREIGN KEY)</text>
+
+    <text x="680" y="60" font-size="12" fill="#e63946" font-weight="700">1 : N</text>
+    <text x="720" y="60" font-size="12" fill="#1f2937">Relação 1-para-N (um para muitos)</text>
+
+    <line x1="680" y1="85" x2="720" y2="85" stroke="#e63946" stroke-width="2" stroke-dasharray="4,4"/>
+    <text x="730" y="90" font-size="12" fill="#1f2937">Relação longa (atravessa o diagrama)</text>
+
+    <!-- Multi-tenancy note -->
+    <text x="20" y="125" font-size="13" font-weight="700" fill="#e63946">🏢 Multi-tenancy:</text>
+    <text x="20" y="145" font-size="11" fill="#1f2937">Todas as tabelas de negócio (products, orders, categories, notifications) têm company_id. Cada empresa só acede aos seus próprios dados através de queries filtradas pelo JWT.</text>
+    <text x="20" y="160" font-size="11" fill="#1f2937">Chaves estrangeiras com ON DELETE CASCADE: remover uma empresa remove toda a informação associada. WAL mode ativado para melhor performance concorrente.</text>
+  </g>
+</svg>
