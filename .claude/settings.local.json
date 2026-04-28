@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(sqlite3 \"D:/Downloads/armazemexpress/backend/database.sqlite\" \"SELECT name, price FROM plans;\")",
-      "Bash(pnpm add *)"
-    ]
-  }
-}
