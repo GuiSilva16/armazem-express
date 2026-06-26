@@ -174,6 +174,11 @@ table.modern-table tbody tr:hover {
 @media print {
   .no-print, .screen-only { display: none !important; }
   .print-only { display: block !important; }
+  /* garantir que as cores do relatório (logo, barras) são impressas */
+  .print-only, .print-only * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
   /* tudo a preto sobre branco para poupar tinta e ler bem */
   html, body {
     background: #fff !important;

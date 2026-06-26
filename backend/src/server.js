@@ -12,6 +12,7 @@ import orderRoutes from './routes/orders.js';
 import userRoutes from './routes/users.js';
 import dashboardRoutes from './routes/dashboard.js';
 import billingRoutes, { webhookHandler } from './routes/billing.js';
+import publicRoutes from './routes/public.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -44,6 +45,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/track', publicRoutes); // rastreio público (sem login)
 
 // 404
 app.use((req, res) => {

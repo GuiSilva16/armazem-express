@@ -67,15 +67,17 @@ export default function Landing() {
   const heroY = useTransform(scrollY, [0, 500], [0, 150]);
   const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
 
-  // Header que encolhe suavemente conforme a posição do scroll (0 → 160px)
+  // Header que encolhe suavemente conforme a posição do scroll.
+  // Em mobile arranca já mais compacto (logo e altura menores).
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
   const navRange = [0, 160];
-  const navOuterPad = useTransform(scrollY, navRange, [0, 16]);
+  const navOuterPad = useTransform(scrollY, navRange, [0, 14]);
   const navMaxW = useTransform(scrollY, navRange, [2400, 1152]);
   const navContentMaxW = useTransform(scrollY, navRange, [1200, 1120]);
   const navRadius = useTransform(scrollY, navRange, [0, 18]);
-  const navHeight = useTransform(scrollY, navRange, [80, 56]);
-  const navInnerPad = useTransform(scrollY, navRange, [24, 18]);
-  const logoScale = useTransform(scrollY, navRange, [1, 0.78]);
+  const navHeight = useTransform(scrollY, navRange, isMobile ? [60, 54] : [80, 56]);
+  const navInnerPad = useTransform(scrollY, navRange, isMobile ? [14, 12] : [24, 18]);
+  const logoScale = useTransform(scrollY, navRange, isMobile ? [0.72, 0.66] : [1, 0.78]);
   const shadowAlpha = useTransform(scrollY, navRange, [0, 0.1]);
   const navShadow = useMotionTemplate`0 12px 32px rgba(0,0,0,${shadowAlpha})`;
 
@@ -171,16 +173,17 @@ export default function Landing() {
                 </button>
                 <Link
                   to="/login"
-                  className="hidden sm:inline-flex items-center px-3.5 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                  className="inline-flex items-center px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-neutral-700 dark:text-neutral-200 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                 >
                   Entrar
                 </Link>
                 <a
                   href="#pricing"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold bg-brand-red-500 text-white rounded-xl hover:bg-brand-red-600 transition-colors shadow-sm"
+                  className="inline-flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold bg-brand-red-500 text-white rounded-lg sm:rounded-xl hover:bg-brand-red-600 transition-colors shadow-sm whitespace-nowrap"
                 >
-                  Começar agora
-                  <ArrowRight size={15} />
+                  <span className="sm:hidden">Começar</span>
+                  <span className="hidden sm:inline">Começar agora</span>
+                  <ArrowRight size={14} className="hidden sm:inline" />
                 </a>
               </div>
             </motion.div>
@@ -964,7 +967,7 @@ export default function Landing() {
               </p>
               <div className="flex gap-3 mt-5">
                 <a
-                  href="https://github.com"
+                  href="https://github.com/GuiSilva16/armazem-express"
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="GitHub"
@@ -1006,6 +1009,7 @@ export default function Landing() {
             <div>
               <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4">Recursos</h3>
               <ul className="space-y-2.5 text-sm">
+                <li><Link to="/track" className="hover:text-white transition">Rastrear encomenda</Link></li>
                 <li><a href="#" className="hover:text-white transition">Documentação</a></li>
                 <li><a href="#" className="hover:text-white transition">Centro de ajuda</a></li>
                 <li><a href="#" className="hover:text-white transition">Política de privacidade</a></li>

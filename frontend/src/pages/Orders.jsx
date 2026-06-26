@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Truck, Search, Plus, Package, MapPin, User, Download } from 'lucide-react';
+import { Truck, Search, Plus, Package, MapPin, User, Download, Printer, ClipboardList } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PageHeader, StatusBadge, LoadingSpinner, EmptyState } from '../components/ui';
+import PrintReport from '../components/PrintReport';
+import DateRange, { filterByRange } from '../components/DateRange';
+import Select from '../components/Select';
 import api from '../lib/api';
-import { formatCurrency, timeAgo } from '../lib/format';
+import { formatCurrency, timeAgo, formatDate } from '../lib/format';
 import { useAuth } from '../context/AuthContext';
 import { planHasFeature } from '../lib/planFeatures';
 
@@ -16,6 +19,8 @@ export default function Orders() {
   const [status, setStatus] = useState('all');
   const [period, setPeriod] = useState('all');
   const [exporting, setExporting] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const periodOptions = [
     { value: '1w', label: '1 semana' },
@@ -86,13 +91,49 @@ export default function Orders() {
     return () => clearInterval(interval);
   }, [search, status, period]);
 
+  const STATUS_PT = { pending: 'Pendente', shipped: 'Expedida', in_transit: 'Em trânsito', delivered: 'Entregue', cancelled: 'Cancelada' };
+
+  // Filtro de datas (aplicado a ecrã e relatório)
+  const view = filterByRange(orders, 'created_at', dateFrom, dateTo);
+
+  const copySummary = () => {
+    const total = view.reduce((s, o) => s + (o.total_value || 0), 0);
+    const byStatus = Object.entries(STATUS_PT)
+      .map(([k, v]) => `${v}: ${view.filter((o) => o.status === k).length}`)
+      .join(' | ');
+    const text = [
+      `📦 Resumo de Encomendas · ${new Date().toLocaleDateString('pt-PT')}`,
+      `Total: ${view.length} encomendas · Valor: ${formatCurrency(total)}`,
+      byStatus
+    ].join('\n');
+    navigator.clipboard.writeText(text).then(
+      () => toast.success('Resumo copiado'),
+      () => toast.error('Não foi possível copiar')
+    );
+  };
+
   return (
-    <div>
+    <>
+    <div className="screen-only">
       <PageHeader
         title="Encomendas"
-        subtitle={`${orders.length} ${orders.length === 1 ? 'encomenda' : 'encomendas'}`}
+        subtitle={`${view.length} ${view.length === 1 ? 'encomenda' : 'encomendas'}`}
         actions={
           <>
+            <button
+              onClick={copySummary}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 border-neutral-200 dark:border-neutral-700 hover:border-brand-red-500 hover:text-brand-red-500 font-semibold transition text-sm"
+              title="Copiar resumo"
+            >
+              <ClipboardList size={16} /> Resumo
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 border-neutral-200 dark:border-neutral-700 hover:border-brand-red-500 hover:text-brand-red-500 font-semibold transition text-sm"
+              title="Exportar PDF"
+            >
+              <Printer size={16} /> PDF
+            </button>
             {canExport ? (
               <button
                 onClick={handleExport}
@@ -128,19 +169,23 @@ export default function Orders() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="all">Todos os estados</option>
-            <option value="pending">Pendentes</option>
-            <option value="shipped">Expedidas</option>
-            <option value="in_transit">Em trânsito</option>
-            <option value="delivered">Entregues</option>
-            <option value="cancelled">Canceladas</option>
-          </select>
-          <select className="input" value={period} onChange={(e) => setPeriod(e.target.value)} title="Filtrar por período">
-            {periodOptions.map((p) => (
-              <option key={p.value} value={p.value}>{p.label}</option>
-            ))}
-          </select>
+          <Select
+            value={status}
+            onChange={setStatus}
+            options={[
+              { value: 'all', label: 'Todos os estados' },
+              { value: 'pending', label: 'Pendentes' },
+              { value: 'shipped', label: 'Expedidas' },
+              { value: 'in_transit', label: 'Em trânsito' },
+              { value: 'delivered', label: 'Entregues' },
+              { value: 'cancelled', label: 'Canceladas' }
+            ]}
+          />
+          <Select
+            value={period}
+            onChange={setPeriod}
+            options={periodOptions.map((p) => ({ value: p.value, label: p.label }))}
+          />
         </div>
 
         {/* Atalhos rápidos de período */}
@@ -159,11 +204,16 @@ export default function Orders() {
             </button>
           ))}
         </div>
+
+        {/* Intervalo de datas personalizado */}
+        <div className="pt-2 border-t border-neutral-100 dark:border-neutral-800">
+          <DateRange from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); }} />
+        </div>
       </div>
 
       {loading ? (
         <LoadingSpinner size="lg" />
-      ) : orders.length === 0 ? (
+      ) : view.length === 0 ? (
         <div className="card">
           <EmptyState
             icon={Truck}
@@ -178,7 +228,7 @@ export default function Orders() {
         </div>
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {orders.map((o, i) => (
+          {view.map((o, i) => (
             <motion.div
               key={o.id}
               initial={{ opacity: 0, y: 10 }}
@@ -212,5 +262,32 @@ export default function Orders() {
         </div>
       )}
     </div>
+
+    <PrintReport
+      title="Relatório de Encomendas"
+      columns={[
+        { label: 'Tracking', render: (o) => o.tracking_number },
+        { label: 'Destinatário', render: (o) => o.recipient_name },
+        { label: 'Cidade', render: (o) => o.recipient_city },
+        { label: 'Estado', render: (o) => STATUS_PT[o.status] || o.status },
+        { label: 'Itens', align: 'right', render: (o) => o.item_count },
+        { label: 'Valor', align: 'right', render: (o) => formatCurrency(o.total_value) },
+        { label: 'Data', render: (o) => formatDate(o.created_at) }
+      ]}
+      rows={view}
+      summary={[
+        { label: 'Encomendas', value: view.length },
+        { label: 'Entregues', value: view.filter((o) => o.status === 'delivered').length },
+        { label: 'Valor total', value: formatCurrency(view.reduce((s, o) => s + (o.total_value || 0), 0)) }
+      ]}
+      breakdown={[
+        { label: 'Pendentes', value: view.filter((o) => o.status === 'pending').length, color: '#f4b01d' },
+        { label: 'Expedidas', value: view.filter((o) => o.status === 'shipped').length, color: '#3b82f6' },
+        { label: 'Em trânsito', value: view.filter((o) => o.status === 'in_transit').length, color: '#a855f7' },
+        { label: 'Entregues', value: view.filter((o) => o.status === 'delivered').length, color: '#22c55e' },
+        { label: 'Canceladas', value: view.filter((o) => o.status === 'cancelled').length, color: '#e63946' }
+      ].filter((b) => b.value > 0)}
+    />
+    </>
   );
 }

@@ -6,6 +6,7 @@ import {
   ArrowRight, RefreshCw, Shield
 } from 'lucide-react';
 import { LoadingSpinner } from '../components/ui';
+import Select from '../components/Select';
 import api from '../lib/api';
 import { timeAgo, formatDate } from '../lib/format';
 
@@ -130,27 +131,25 @@ export default function Activity() {
         <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-500">
           <Filter size={14} /> Filtros:
         </div>
-        <select
+        <Select
+          className="w-56"
           value={userFilter}
-          onChange={(e) => setUserFilter(e.target.value)}
-          className="input !py-1.5 !px-3 text-sm !w-auto"
-        >
-          <option value="all">Todos os utilizadores</option>
-          {users.map((u) => (
-            <option key={u.id} value={u.id}>
-              {u.name} {u.role === 'admin' ? '(admin)' : ''}
-            </option>
-          ))}
-        </select>
-        <select
+          onChange={setUserFilter}
+          options={[
+            { value: 'all', label: 'Todos os utilizadores' },
+            ...users.map((u) => ({ value: String(u.id), label: `${u.name}${u.role === 'admin' ? ' (admin)' : ''}` }))
+          ]}
+        />
+        <Select
+          className="w-44"
           value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value)}
-          className="input !py-1.5 !px-3 text-sm !w-auto"
-        >
-          <option value="all">Tudo</option>
-          <option value="stock">Só Stock</option>
-          <option value="order">Só Encomendas</option>
-        </select>
+          onChange={setTypeFilter}
+          options={[
+            { value: 'all', label: 'Tudo' },
+            { value: 'stock', label: 'Só Stock' },
+            { value: 'order', label: 'Só Encomendas' }
+          ]}
+        />
       </div>
 
       {/* Timeline */}

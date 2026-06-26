@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Search, Filter, Package, Trash2, Eye, Edit3, MapPin, Download } from 'lucide-react';
+import { Plus, Search, Filter, Package, Trash2, Eye, Edit3, MapPin, Download, Printer, ClipboardList, QrCode, Upload, FileUp, CheckCircle2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PageHeader, StatusBadge, LoadingSpinner, EmptyState, Modal } from '../components/ui';
+import PrintReport from '../components/PrintReport';
+import DateRange, { filterByRange } from '../components/DateRange';
+import Select from '../components/Select';
 import api from '../lib/api';
 import { formatCurrency, getStockStatus } from '../lib/format';
+import { parseProductsCSV, CSV_TEMPLATE } from '../lib/csv';
 import { useAuth } from '../context/AuthContext';
 import { planHasFeature } from '../lib/planFeatures';
 
@@ -18,6 +22,12 @@ export default function Stock() {
   const [category, setCategory] = useState(searchParams.get('category') || 'all');
   const [status, setStatus] = useState(searchParams.get('status') || 'all');
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState('');
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
   const navigate = useNavigate();
   const { user, plan } = useAuth();
   const canExport = planHasFeature(plan?.name, 'csv_export');
@@ -101,13 +111,133 @@ export default function Stock() {
     }
   };
 
+  // Vista filtrada por datas (created_at)
+  const view = filterByRange(products, 'created_at', dateFrom, dateTo);
+
+  const copySummary = () => {
+    const totalValue = view.reduce((s, p) => s + p.quantity * p.price, 0);
+    const low = view.filter((p) => p.quantity > 0 && p.quantity <= p.min_stock).length;
+    const out = view.filter((p) => p.quantity === 0).length;
+    const text = [
+      `📦 Resumo de Stock · ${new Date().toLocaleDateString('pt-PT')}`,
+      `Produtos: ${view.length} · Unidades: ${view.reduce((s, p) => s + p.quantity, 0)}`,
+      `Valor do inventário: ${formatCurrency(totalValue)}`,
+      `Stock baixo: ${low} · Sem stock: ${out}`
+    ].join('\n');
+    navigator.clipboard.writeText(text).then(
+      () => toast.success('Resumo copiado'),
+      () => toast.error('Não foi possível copiar')
+    );
+  };
+
+  // Etiquetas com QR — abre uma janela nova pronta a imprimir
+  const printLabels = () => {
+    if (view.length === 0) { toast.error('Sem produtos para etiquetar'); return; }
+    const labels = view.map((p) => {
+      const qr = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&margin=0&data=${encodeURIComponent(p.qr_code || p.sku)}`;
+      return `<div class="label">
+        <img src="${qr}" alt="QR" />
+        <div class="info">
+          <div class="name">${p.name}</div>
+          <div class="sku">${p.sku}</div>
+          <div class="meta">${p.category} · ${p.shelf || '-'}</div>
+          <div class="price">${formatCurrency(p.price)}</div>
+        </div>
+      </div>`;
+    }).join('');
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Etiquetas · Armazém Express</title>
+      <style>
+        *{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
+        body{margin:0;padding:12mm;color:#111}
+        h1{font-size:16px;margin:0 0 10px}
+        .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+        .label{border:1px solid #bbb;border-radius:8px;padding:8px;display:flex;gap:8px;align-items:center;break-inside:avoid}
+        .label img{width:64px;height:64px}
+        .info{min-width:0}
+        .name{font-weight:700;font-size:11px;line-height:1.1}
+        .sku{font-family:monospace;font-size:9px;color:#666;margin-top:2px}
+        .meta{font-size:9px;color:#888;margin-top:2px}
+        .price{font-weight:700;font-size:11px;color:#e63946;margin-top:3px}
+        @media print{@page{margin:10mm}}
+      </style></head><body>
+      <h1>Etiquetas de Produtos · ${view.length} · ${new Date().toLocaleDateString('pt-PT')}</h1>
+      <div class="grid">${labels}</div>
+      <script>window.onload=()=>{setTimeout(()=>window.print(),400)}</script>
+      </body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) { toast.error('Permita pop-ups para imprimir as etiquetas'); return; }
+    w.document.write(html);
+    w.document.close();
+  };
+
+  // Importar produtos por CSV
+  const onFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setImportText(String(reader.result || ''));
+    reader.readAsText(file, 'utf-8');
+  };
+
+  const downloadTemplate = () => {
+    const blob = new Blob(['﻿' + CSV_TEMPLATE], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'modelo-produtos.csv'; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImport = async () => {
+    const parsed = parseProductsCSV(importText);
+    if (parsed.length === 0) {
+      toast.error('Não foi possível ler produtos. Verifique o formato do CSV.');
+      return;
+    }
+    setImporting(true);
+    setImportResult(null);
+    try {
+      const { data } = await api.post('/products/import', { products: parsed });
+      setImportResult(data);
+      if (data.created > 0) {
+        toast.success(`${data.created} produto(s) importado(s)`);
+        load();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Erro ao importar');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   return (
-    <div>
+    <>
+    <div className="screen-only">
       <PageHeader
         title="Stock"
-        subtitle={`${products.length} ${products.length === 1 ? 'produto' : 'produtos'} em inventário`}
+        subtitle={`${view.length} ${view.length === 1 ? 'produto' : 'produtos'} em inventário`}
         actions={
           <>
+            <button
+              onClick={copySummary}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 border-neutral-200 dark:border-neutral-700 hover:border-brand-red-500 hover:text-brand-red-500 font-semibold transition text-sm"
+              title="Copiar resumo"
+            >
+              <ClipboardList size={16} /> Resumo
+            </button>
+            <button
+              onClick={printLabels}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 border-neutral-200 dark:border-neutral-700 hover:border-brand-red-500 hover:text-brand-red-500 font-semibold transition text-sm"
+              title="Imprimir etiquetas QR"
+            >
+              <QrCode size={16} /> Etiquetas
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 border-neutral-200 dark:border-neutral-700 hover:border-brand-red-500 hover:text-brand-red-500 font-semibold transition text-sm"
+              title="Exportar PDF"
+            >
+              <Printer size={16} /> PDF
+            </button>
             {canExport ? (
               <button
                 onClick={handleExport}
@@ -126,6 +256,13 @@ export default function Stock() {
                 <Download size={16} /> Exportar 🔒
               </button>
             )}
+            <button
+              onClick={() => { setImportResult(null); setImportText(''); setImportOpen(true); }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 border-neutral-200 dark:border-neutral-700 hover:border-brand-red-500 hover:text-brand-red-500 font-semibold transition text-sm"
+              title="Importar produtos por CSV"
+            >
+              <Upload size={16} /> Importar
+            </button>
             {user?.role === 'admin' && (
               <button
                 onClick={() => navigate('/app/stock/remove')}
@@ -154,24 +291,30 @@ export default function Stock() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
-            <option value="all">Todas as categorias</option>
-            {categories.map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </select>
-          <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="all">Todos os estados</option>
-            <option value="in_stock">Em Stock</option>
-            <option value="low_stock">Stock Baixo</option>
-            <option value="out_of_stock">Sem Stock</option>
-          </select>
+          <Select
+            value={category}
+            onChange={setCategory}
+            options={[{ value: 'all', label: 'Todas as categorias' }, ...categories.map((c) => ({ value: c, label: c }))]}
+          />
+          <Select
+            value={status}
+            onChange={setStatus}
+            options={[
+              { value: 'all', label: 'Todos os estados' },
+              { value: 'in_stock', label: 'Em Stock' },
+              { value: 'low_stock', label: 'Stock Baixo' },
+              { value: 'out_of_stock', label: 'Sem Stock' }
+            ]}
+          />
+        </div>
+        <div className="mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+          <DateRange from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); }} />
         </div>
       </div>
 
       {loading ? (
         <LoadingSpinner size="lg" />
-      ) : products.length === 0 ? (
+      ) : view.length === 0 ? (
         <div className="card">
           <EmptyState
             icon={Package}
@@ -188,7 +331,7 @@ export default function Stock() {
         <>
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
-            {products.map((p, i) => {
+            {view.map((p, i) => {
               const s = getStockStatus(p);
               return (
                 <motion.div
@@ -241,7 +384,7 @@ export default function Stock() {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((p, i) => {
+                  {view.map((p, i) => {
                     const s = getStockStatus(p);
                     return (
                       <motion.tr
@@ -316,6 +459,88 @@ export default function Stock() {
           </div>
         </div>
       </Modal>
+
+      {/* Modal importar CSV */}
+      <Modal open={importOpen} onClose={() => !importing && setImportOpen(false)} title="Importar produtos (CSV)" maxWidth="max-w-xl">
+        <div className="space-y-4">
+          <div className="text-sm text-neutral-600 dark:text-neutral-400">
+            Carregue um ficheiro <strong>.csv</strong> ou cole o conteúdo. Colunas: <span className="font-mono text-xs">Nome; Categoria; Quantidade; Stock Mínimo; Preço; Prateleira; Fornecedor</span>.
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            <label className="inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 border-neutral-200 dark:border-neutral-700 hover:border-brand-red-500 hover:text-brand-red-500 font-semibold transition text-sm cursor-pointer">
+              <FileUp size={16} /> Escolher ficheiro
+              <input type="file" accept=".csv,text/csv" className="hidden" onChange={onFile} />
+            </label>
+            <button onClick={downloadTemplate} className="inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 border-neutral-200 dark:border-neutral-700 hover:border-brand-red-500 hover:text-brand-red-500 font-semibold transition text-sm">
+              <Download size={16} /> Modelo
+            </button>
+          </div>
+
+          <textarea
+            value={importText}
+            onChange={(e) => { setImportText(e.target.value); setImportResult(null); }}
+            placeholder={CSV_TEMPLATE}
+            rows={6}
+            className="input font-mono text-xs !rounded-xl"
+          />
+
+          {importText && !importResult && (
+            <div className="text-xs text-neutral-500">{parseProductsCSV(importText).length} linha(s) detetada(s).</div>
+          )}
+
+          {importResult && (
+            <div className="rounded-xl border border-neutral-200 dark:border-neutral-800 p-3 space-y-2">
+              <div className="flex items-center gap-4 text-sm">
+                <span className="inline-flex items-center gap-1.5 text-green-600 font-semibold"><CheckCircle2 size={16} /> {importResult.created} importados</span>
+                {importResult.failed > 0 && (
+                  <span className="inline-flex items-center gap-1.5 text-brand-red-500 font-semibold"><AlertTriangle size={16} /> {importResult.failed} ignorados</span>
+                )}
+              </div>
+              {importResult.errors?.length > 0 && (
+                <div className="max-h-32 overflow-y-auto text-xs space-y-1">
+                  {importResult.errors.map((e, i) => (
+                    <div key={i} className="text-neutral-500">Linha {e.row}{e.name ? ` (${e.name})` : ''}: <span className="text-brand-red-500">{e.error}</span></div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-2 justify-end pt-1">
+            <button onClick={() => setImportOpen(false)} disabled={importing} className="btn-ghost !py-2 !px-4">Fechar</button>
+            <button onClick={handleImport} disabled={importing || !importText.trim()} className="btn-primary !py-2 !px-4">
+              {importing ? 'A importar...' : (<><Upload size={16} /> Importar</>)}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
+
+    <PrintReport
+      title="Relatório de Stock"
+      columns={[
+        { label: 'Produto', render: (p) => p.name },
+        { label: 'SKU', render: (p) => p.sku },
+        { label: 'Categoria', render: (p) => p.category },
+        { label: 'Prateleira', render: (p) => p.shelf },
+        { label: 'Quantidade', align: 'right', render: (p) => `${p.quantity} / min ${p.min_stock}` },
+        { label: 'Preço', align: 'right', render: (p) => formatCurrency(p.price) },
+        { label: 'Valor total', align: 'right', render: (p) => formatCurrency(p.quantity * p.price) },
+        { label: 'Estado', render: (p) => getStockStatus(p).label }
+      ]}
+      rows={view}
+      summary={[
+        { label: 'Produtos', value: view.length },
+        { label: 'Unidades em stock', value: view.reduce((s, p) => s + p.quantity, 0) },
+        { label: 'Valor do inventário', value: formatCurrency(view.reduce((s, p) => s + p.quantity * p.price, 0)) }
+      ]}
+      breakdown={[
+        { label: 'Em stock', value: view.filter((p) => p.quantity > p.min_stock).length, color: '#22c55e' },
+        { label: 'Stock baixo', value: view.filter((p) => p.quantity > 0 && p.quantity <= p.min_stock).length, color: '#f4b01d' },
+        { label: 'Sem stock', value: view.filter((p) => p.quantity === 0).length, color: '#e63946' }
+      ].filter((b) => b.value > 0)}
+    />
+    </>
   );
 }

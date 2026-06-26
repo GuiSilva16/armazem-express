@@ -21,6 +21,7 @@ import Settings from './pages/Settings';
 import Activity from './pages/Activity';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
+import PublicTracking from './pages/PublicTracking';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -43,6 +44,8 @@ export default function App() {
       <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
       <Route path="/payment/success" element={<PaymentSuccess />} />
       <Route path="/payment/cancel" element={<PaymentCancel />} />
+      <Route path="/track" element={<PublicTracking />} />
+      <Route path="/track/:code" element={<PublicTracking />} />
 
       <Route
         path="/app"

@@ -320,6 +320,78 @@ router.post('/', authenticate, (req, res) => {
 });
 
 /**
+ * POST /api/products/import
+ * Importa produtos em lote (CSV processado no cliente).
+ * Body: { products: [{ name, category, quantity, min_stock, price, shelf, supplier?, sku? }] }
+ */
+router.post('/import', authenticate, (req, res) => {
+  try {
+    const { products } = req.body;
+    if (!Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ error: 'Nenhuma linha para importar' });
+    }
+    if (products.length > 1000) {
+      return res.status(400).json({ error: 'Máximo de 1000 produtos por importação' });
+    }
+
+    const plan = db.prepare('SELECT * FROM plans WHERE id = ?').get(req.user.plan_id);
+    let count = db.prepare('SELECT COUNT(*) as c FROM products WHERE company_id = ?').get(req.user.company_id).c;
+
+    const insertProduct = db.prepare(
+      `INSERT INTO products (company_id, sku, name, description, category, quantity, min_stock, price, shelf, supplier, qr_code)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    const updateQr = db.prepare('UPDATE products SET qr_code = ? WHERE id = ?');
+    const insCat = db.prepare('INSERT OR IGNORE INTO categories (company_id, name) VALUES (?, ?)');
+    const insMov = db.prepare(`INSERT INTO stock_movements (company_id, product_id, type, quantity, reason, user_id) VALUES (?, ?, 'add', ?, ?, ?)`);
+    const skuExists = db.prepare('SELECT id FROM products WHERE company_id = ? AND sku = ?');
+
+    const errors = [];
+    let created = 0;
+
+    const run = db.transaction(() => {
+      products.forEach((p, idx) => {
+        const row = idx + 1;
+        const name = (p.name ?? '').toString().trim();
+        const category = (p.category ?? '').toString().trim();
+        const quantity = Number(p.quantity);
+        const min_stock = Number(p.min_stock);
+        const price = Number(String(p.price).replace(',', '.'));
+        const shelf = (p.shelf ?? '').toString().trim();
+        const supplier = (p.supplier ?? '').toString().trim();
+
+        if (name.length < 2) return errors.push({ row, name, error: 'Nome inválido' });
+        if (!category) return errors.push({ row, name, error: 'Categoria em falta' });
+        if (!Number.isInteger(quantity) || quantity < 0) return errors.push({ row, name, error: 'Quantidade inválida' });
+        if (!Number.isInteger(min_stock) || min_stock < 0) return errors.push({ row, name, error: 'Stock mínimo inválido' });
+        if (!(price >= 0)) return errors.push({ row, name, error: 'Preço inválido' });
+        if (!shelf) return errors.push({ row, name, error: 'Prateleira em falta' });
+        if (count >= plan.max_products) return errors.push({ row, name, error: `Limite do plano (${plan.max_products}) atingido` });
+
+        let sku = (p.sku ?? '').toString().trim() || generateSKU(category);
+        if (skuExists.get(req.user.company_id, sku)) {
+          sku = `${generateSKU(category)}-${Math.floor(Math.random() * 1000)}`;
+        }
+
+        const result = insertProduct.run(req.user.company_id, sku, name, '', category, quantity, min_stock, price, shelf, supplier, '');
+        const id = result.lastInsertRowid;
+        updateQr.run(generateQRCode(id, sku), id);
+        insCat.run(req.user.company_id, category);
+        insMov.run(req.user.company_id, id, quantity, `Importado: ${name}`, req.user.id);
+        count++;
+        created++;
+      });
+    });
+    run();
+
+    res.json({ created, failed: errors.length, total: products.length, errors: errors.slice(0, 50) });
+  } catch (error) {
+    console.error('Erro ao importar produtos:', error);
+    res.status(500).json({ error: 'Erro ao importar produtos' });
+  }
+});
+
+/**
  * PUT /api/products/:id
  * Editar produto
  */

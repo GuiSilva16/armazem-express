@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Save, ArrowLeft, Package, Tag, MapPin, Hash, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PageHeader } from '../components/ui';
+import Select from '../components/Select';
 import api from '../lib/api';
 
 export default function AddProduct() {
@@ -138,17 +139,15 @@ export default function AddProduct() {
 
             <div className="grid md:grid-cols-2 gap-4">
               <Field label="Categoria" required error={errors.category}>
-                <select
-                  className={`input ${errors.category ? 'border-brand-red-500' : ''}`}
+                <Select
                   value={form.category}
-                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                >
-                  <option value="">Selecione uma categoria</option>
-                  {categories.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                  <option value="__new__">+ Criar nova categoria</option>
-                </select>
+                  onChange={(v) => setForm((f) => ({ ...f, category: v }))}
+                  placeholder="Selecione uma categoria"
+                  options={[
+                    ...categories.map((c) => ({ value: c, label: c })),
+                    { value: '__new__', label: '+ Criar nova categoria' }
+                  ]}
+                />
                 {form.category === '__new__' && (
                   <input
                     type="text"

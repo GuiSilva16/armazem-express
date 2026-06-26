@@ -185,8 +185,12 @@ export default function AppLayout() {
         className="no-print fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 flex flex-col"
       >
         <div className="p-6 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
-          <NavLink to="/app" end className="rounded-xl -m-1 p-1 hover:opacity-80 transition-opacity" title="Ir para Dashboard">
+          <NavLink to="/app" end className="flex items-center gap-2.5 rounded-xl -m-1 p-1 hover:opacity-80 transition-opacity" title="Ir para Dashboard">
             <Logo size="md" />
+            <div className="flex flex-col leading-none">
+              <span className="font-display font-extrabold tracking-tight text-lg text-neutral-900 dark:text-white">Armazém</span>
+              <span className="font-bold uppercase text-brand-red-500 text-[9px] tracking-[0.3em]">Express</span>
+            </div>
           </NavLink>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -296,8 +300,12 @@ export default function AppLayout() {
               <Menu size={22} />
             </button>
 
-            <NavLink to="/app" end className="lg:hidden">
+            <NavLink to="/app" end className="lg:hidden flex items-center gap-2">
               <Logo size="sm" showText={false} animated={false} />
+              <div className="flex flex-col leading-none">
+                <span className="font-display font-extrabold tracking-tight text-base text-neutral-900 dark:text-white">Armazém</span>
+                <span className="font-bold uppercase text-brand-red-500 text-[8px] tracking-[0.3em]">Express</span>
+              </div>
             </NavLink>
 
             <div className="flex items-center gap-2 ml-auto">

@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Plus, Trash2, Mail, Shield, Copy, CheckCircle2, UserCheck, UserX, AlertCircle, Crown } from 'lucide-react';
+import { Users, Plus, Trash2, Mail, Shield, Copy, CheckCircle2, UserCheck, UserX, AlertCircle, Crown, Printer, ClipboardList } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PageHeader, LoadingSpinner, Modal, EmptyState } from '../components/ui';
+import PrintReport from '../components/PrintReport';
+import DateRange, { filterByRange } from '../components/DateRange';
+import Select from '../components/Select';
 import api from '../lib/api';
 import { formatDate } from '../lib/format';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +22,8 @@ export default function Team() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [form, setForm] = useState({ name: '', email: '', role: 'employee' });
   const [errors, setErrors] = useState({});
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   useEffect(() => {
     if (user?.role !== 'admin') {
@@ -89,19 +94,51 @@ export default function Team() {
   const maxSlots = plan?.max_employees === -1 ? '∞' : (plan?.max_employees || 0);
   const canAdd = plan?.max_employees === -1 || usedSlots < (plan?.max_employees || 0);
 
+  const view = filterByRange(users, 'created_at', dateFrom, dateTo);
+
+  const copySummary = () => {
+    const text = [
+      `👥 Resumo da Equipa · ${new Date().toLocaleDateString('pt-PT')}`,
+      `Total: ${view.length} utilizadores`,
+      `Administradores: ${view.filter((u) => u.role === 'admin').length} | Funcionários: ${view.filter((u) => u.role !== 'admin').length}`,
+      `Ativos: ${view.filter((u) => u.active).length} | Inativos: ${view.filter((u) => !u.active).length}`
+    ].join('\n');
+    navigator.clipboard.writeText(text).then(
+      () => toast.success('Resumo copiado'),
+      () => toast.error('Não foi possível copiar')
+    );
+  };
+
   return (
-    <div>
+    <>
+    <div className="screen-only">
       <PageHeader
         title="Equipa"
         subtitle={`${usedSlots} de ${maxSlots} ${maxSlots === 1 ? 'utilizador' : 'utilizadores'} · Plano ${plan?.name}`}
         actions={
-          <button
-            onClick={() => setCreateOpen(true)}
-            disabled={!canAdd}
-            className="btn-primary !py-2 !px-4 text-sm"
-          >
-            <Plus size={16} /> Adicionar funcionário
-          </button>
+          <>
+            <button
+              onClick={copySummary}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 border-neutral-200 dark:border-neutral-700 hover:border-brand-red-500 hover:text-brand-red-500 font-semibold transition text-sm"
+              title="Copiar resumo"
+            >
+              <ClipboardList size={16} /> Resumo
+            </button>
+            <button
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 border-neutral-200 dark:border-neutral-700 hover:border-brand-red-500 hover:text-brand-red-500 font-semibold transition text-sm"
+              title="Exportar PDF"
+            >
+              <Printer size={16} /> PDF
+            </button>
+            <button
+              onClick={() => setCreateOpen(true)}
+              disabled={!canAdd}
+              className="btn-primary !py-2 !px-4 text-sm"
+            >
+              <Plus size={16} /> Adicionar funcionário
+            </button>
+          </>
         }
       />
 
@@ -120,20 +157,26 @@ export default function Team() {
         </motion.div>
       )}
 
+      {users.length > 0 && (
+        <div className="card p-3 mb-4">
+          <DateRange from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); }} />
+        </div>
+      )}
+
       {loading ? (
         <LoadingSpinner size="lg" />
-      ) : users.length === 0 ? (
+      ) : view.length === 0 ? (
         <div className="card">
           <EmptyState
             icon={Users}
             title="Sem utilizadores"
-            description="Adicione o primeiro funcionário à sua empresa."
+            description={dateFrom || dateTo ? 'Nenhum utilizador no intervalo de datas.' : 'Adicione o primeiro funcionário à sua empresa.'}
             action={<button onClick={() => setCreateOpen(true)} className="btn-primary"><Plus size={18}/> Adicionar</button>}
           />
         </div>
       ) : (
         <div className="grid md:grid-cols-2 gap-4">
-          {users.map((u, i) => (
+          {view.map((u, i) => (
             <motion.div
               key={u.id}
               initial={{ opacity: 0, y: 10 }}
@@ -224,10 +267,14 @@ export default function Team() {
           </div>
           <div>
             <label className="label">Permissões</label>
-            <select className="input" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-              <option value="employee">Funcionário (operar stock e encomendas)</option>
-              <option value="admin">Administrador (acesso total)</option>
-            </select>
+            <Select
+              value={form.role}
+              onChange={(v) => setForm({ ...form, role: v })}
+              options={[
+                { value: 'employee', label: 'Funcionário (operar stock e encomendas)' },
+                { value: 'admin', label: 'Administrador (acesso total)' }
+              ]}
+            />
           </div>
           <div className="p-3 bg-brand-yellow-50 dark:bg-brand-yellow-900/20 border border-brand-yellow-200 rounded-xl text-xs text-brand-yellow-700 dark:text-brand-yellow-300">
             🔑 Uma password forte será gerada automaticamente. Mostraremos uma única vez — guarde bem.
@@ -288,5 +335,28 @@ export default function Team() {
         </div>
       </Modal>
     </div>
+
+    <PrintReport
+      title="Relatório da Equipa"
+      subtitle={`Plano ${plan?.name || '-'}`}
+      columns={[
+        { label: 'Nome', render: (u) => u.name },
+        { label: 'Email', render: (u) => u.email },
+        { label: 'Função', render: (u) => (u.role === 'admin' ? 'Administrador' : 'Funcionário') },
+        { label: 'Estado', render: (u) => (u.active ? 'Ativo' : 'Inativo') },
+        { label: 'Criado em', render: (u) => formatDate(u.created_at) }
+      ]}
+      rows={view}
+      summary={[
+        { label: 'Utilizadores', value: view.length },
+        { label: 'Administradores', value: view.filter((u) => u.role === 'admin').length },
+        { label: 'Ativos', value: view.filter((u) => u.active).length }
+      ]}
+      breakdown={[
+        { label: 'Administradores', value: view.filter((u) => u.role === 'admin').length, color: '#f4b01d' },
+        { label: 'Funcionários', value: view.filter((u) => u.role !== 'admin').length, color: '#e63946' }
+      ].filter((b) => b.value > 0)}
+    />
+    </>
   );
 }
