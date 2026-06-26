@@ -43,8 +43,20 @@ export default function Login() {
   return (
     <div className="min-h-screen grid lg:grid-cols-2">
       {/* Lado esquerdo - visual */}
-      <div className="hidden lg:flex relative bg-gradient-to-br from-brand-red-500 via-brand-red-600 to-brand-red-700 overflow-hidden items-center justify-center p-12">
-        <div className="absolute inset-0 bg-noise opacity-30" />
+      <div className="hidden lg:flex relative overflow-hidden items-center justify-center p-12">
+        {/* Imagem de armazém de fundo */}
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage:
+              'url(https://images.pexels.com/photos/4481530/pexels-photo-4481530.jpeg?auto=compress&cs=tinysrgb&w=1600)'
+          }}
+        />
+        {/* Overlay vermelho da marca (leve, só para dar tom de marca) */}
+        <div className="absolute inset-0 bg-gradient-to-br from-brand-red-600/40 via-brand-red-700/30 to-brand-red-900/45 mix-blend-multiply" />
+        {/* Escurecimento subtil em baixo para o texto se ler */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/15 to-black/10" />
+        <div className="absolute inset-0 bg-noise opacity-20" />
         <div className="absolute top-10 left-10 w-72 h-72 bg-brand-yellow-500/30 rounded-full blur-3xl" />
         <div className="absolute bottom-10 right-10 w-96 h-96 bg-brand-yellow-400/20 rounded-full blur-3xl" />
 

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { motion, useScroll, useTransform, AnimatePresence, useInView } from 'framer-motion';
 import {
   ArrowRight,
   Package,
@@ -20,13 +20,41 @@ import {
   MapPin,
   Phone,
   Github,
-  Linkedin
+  Linkedin,
+  AlertTriangle,
+  Clock,
+  RefreshCw,
+  Plus
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Logo from '../components/Logo';
 import { Modal } from '../components/ui';
 import api from '../lib/api';
 import { useTheme } from '../context/ThemeContext';
+
+// Contador animado que arranca quando entra no ecrã
+function CountUp({ end, decimals = 0, duration = 1800 }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: '-50px' });
+  const [value, setValue] = useState(0);
+
+  useEffect(() => {
+    if (!inView) return;
+    let raf;
+    const start = performance.now();
+    const tick = (now) => {
+      const progress = Math.min((now - start) / duration, 1);
+      // easeOutExpo para arranque rápido e travagem suave
+      const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      setValue(end * eased);
+      if (progress < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [inView, end, duration]);
+
+  return <span ref={ref}>{value.toFixed(decimals)}</span>;
+}
 
 export default function Landing() {
   const [plans, setPlans] = useState([]);
@@ -119,7 +147,6 @@ export default function Landing() {
         />
         <div className="absolute inset-0 bg-white/50 dark:bg-neutral-950/55" />
         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/30 to-white dark:via-neutral-950/40 dark:to-neutral-950" />
-        {/* Background decoration */}
         <div className="absolute inset-0 mesh-gradient opacity-30" />
         <motion.div
           style={{ y: heroY }}
@@ -162,7 +189,7 @@ export default function Landing() {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="mt-6 text-lg lg:text-xl text-neutral-600 dark:text-neutral-400 max-w-xl leading-relaxed"
               >
-                Chega de folhas de Excel desatualizadas. O <strong>Armazém Express</strong> dá às PMEs portuguesas uma ferramenta moderna para gerir stock, expedições e rastreio em tempo real — tudo num só sítio.
+                Chega de folhas de Excel desatualizadas. O <strong>Armazém Express</strong> dá às PMEs portuguesas uma ferramenta moderna para gerir stock, expedições e rastreio em tempo real. Tudo num só sítio.
               </motion.p>
 
               <motion.div
@@ -208,67 +235,150 @@ export default function Landing() {
               transition={{ duration: 0.8, delay: 0.4 }}
               className="relative"
             >
-              <div className="relative aspect-square max-w-md mx-auto lg:max-w-none">
-                <div className="absolute inset-0 bg-gradient-to-br from-brand-yellow-400 to-brand-red-500 rounded-[3rem] rotate-6 blur-2xl opacity-30" />
-                <div className="relative bg-white dark:bg-neutral-900 rounded-[2rem] p-6 shadow-2xl border border-neutral-200 dark:border-neutral-800 rotate-3 hover:rotate-0 transition-transform duration-700">
-                  <div className="flex items-center gap-2 mb-4">
+              <div className="relative max-w-md mx-auto lg:max-w-none">
+                <div className="absolute -inset-4 bg-gradient-to-br from-brand-yellow-400 to-brand-red-500 rounded-[3rem] blur-3xl opacity-25" />
+
+                {/* App window mockup — fiel ao dashboard real */}
+                <div className="relative bg-white dark:bg-neutral-900 rounded-[1.75rem] shadow-2xl border border-neutral-200 dark:border-neutral-800 overflow-hidden rotate-2 hover:rotate-0 transition-transform duration-700">
+                  {/* Window chrome */}
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-neutral-100 dark:border-neutral-800 bg-neutral-50/80 dark:bg-neutral-900/80">
                     <div className="h-3 w-3 rounded-full bg-red-400" />
                     <div className="h-3 w-3 rounded-full bg-brand-yellow-400" />
                     <div className="h-3 w-3 rounded-full bg-green-400" />
-                  </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-3 bg-neutral-50 dark:bg-neutral-800 rounded-xl">
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-lg bg-brand-red-500 flex items-center justify-center">
-                          <Package size={16} className="text-white" />
-                        </div>
-                        <span className="text-sm font-semibold">Total Produtos</span>
-                      </div>
-                      <motion.span
-                        animate={{ scale: [1, 1.1, 1] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        className="text-2xl font-bold text-brand-red-500"
-                      >
-                        1,247
-                      </motion.span>
+                    <div className="ml-3 h-5 flex-1 max-w-[180px] rounded-md bg-neutral-200/70 dark:bg-neutral-800 flex items-center px-2">
+                      <span className="text-[9px] text-neutral-500 font-mono truncate">armazem-express.pt/app</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      {['Em Stock', 'Baixo', 'Sem Stock'].map((l, i) => (
-                        <div key={l} className="p-2 bg-neutral-50 dark:bg-neutral-800 rounded-lg text-center">
-                          <div className={`text-lg font-bold ${i === 0 ? 'text-green-500' : i === 1 ? 'text-brand-yellow-500' : 'text-brand-red-500'}`}>
-                            {[1180, 52, 15][i]}
+                  </div>
+
+                  <div className="p-4 space-y-3">
+                    {/* Welcome banner (réplica do real) */}
+                    <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-brand-red-500 via-brand-red-600 to-brand-red-700 p-3.5 text-white">
+                      <div className="absolute -right-8 -top-8 w-28 h-28 bg-brand-yellow-500/30 rounded-full blur-2xl" />
+                      <div className="relative flex items-center justify-between">
+                        <div>
+                          <div className="text-[10px] font-semibold opacity-90">Olá, Guilherme 👋</div>
+                          <div className="font-display text-base font-bold leading-tight">Demo PME Logística</div>
+                          <div className="flex items-center gap-1.5 mt-1 text-[9px] text-white/80">
+                            <span>Plano <strong>Business</strong></span>
+                            <span className="h-0.5 w-0.5 rounded-full bg-white/50" />
+                            <span>1247 produtos</span>
                           </div>
-                          <div className="text-[10px] text-neutral-500">{l}</div>
                         </div>
+                        <div className="flex gap-1.5">
+                          <div className="h-7 w-7 rounded-lg bg-white/15 border border-white/20 flex items-center justify-center">
+                            <RefreshCw size={13} />
+                          </div>
+                          <div className="h-7 w-7 rounded-lg bg-white flex items-center justify-center text-brand-red-600">
+                            <Plus size={13} />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="relative mt-2 flex items-center gap-1 text-[8px] text-white/60">
+                        <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+                        Em tempo real · atualizado agora
+                      </div>
+                    </div>
+
+                    {/* Stat cards (4, estilo real) */}
+                    <div className="grid grid-cols-4 gap-2">
+                      {[
+                        { icon: Package, label: 'Produtos', value: '1247', color: 'text-brand-red-500', bg: 'bg-brand-red-500' },
+                        { icon: CheckCircle2, label: 'Em Stock', value: '1180', color: 'text-green-500', bg: 'bg-green-500' },
+                        { icon: AlertTriangle, label: 'Baixo', value: '52', color: 'text-brand-yellow-500', bg: 'bg-brand-yellow-500' },
+                        { icon: Truck, label: 'Encomendas', value: '318', color: 'text-blue-500', bg: 'bg-blue-500' }
+                      ].map((s, i) => (
+                        <motion.div
+                          key={s.label}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.5 + i * 0.08 }}
+                          className="p-2 rounded-lg bg-neutral-50 dark:bg-neutral-800/70 border border-neutral-100 dark:border-neutral-800"
+                        >
+                          <div className={`h-5 w-5 rounded-md ${s.bg} flex items-center justify-center mb-1`}>
+                            <s.icon size={11} className="text-white" />
+                          </div>
+                          <div className={`text-base font-bold leading-none ${s.color}`}>{s.value}</div>
+                          <div className="text-[8px] text-neutral-500 mt-0.5 truncate">{s.label}</div>
+                        </motion.div>
                       ))}
                     </div>
-                    <div className="p-3 bg-gradient-to-r from-brand-red-500 to-brand-yellow-500 rounded-xl text-white">
-                      <div className="flex items-center justify-between">
+
+                    {/* Mini área chart (réplica do "Movimento de Stock") */}
+                    <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/70 border border-neutral-100 dark:border-neutral-800">
+                      <div className="flex items-center justify-between mb-2">
                         <div>
-                          <div className="text-xs opacity-90">Encomendas hoje</div>
-                          <div className="text-2xl font-bold">47</div>
+                          <div className="text-[10px] font-bold">Movimento de Stock</div>
+                          <div className="text-[8px] text-neutral-500">Últimos 7 dias</div>
                         </div>
-                        <TrendingUp size={28} />
+                        <div className="flex items-center gap-2 text-[8px]">
+                          <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-green-500" />Adicionado</span>
+                          <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-brand-red-500" />Removido</span>
+                        </div>
                       </div>
+                      <svg viewBox="0 0 300 80" className="w-full h-16" preserveAspectRatio="none">
+                        <defs>
+                          <linearGradient id="heroAdded" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#22c55e" stopOpacity="0.45" />
+                            <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
+                          </linearGradient>
+                          <linearGradient id="heroRemoved" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#e63946" stopOpacity="0.4" />
+                            <stop offset="100%" stopColor="#e63946" stopOpacity="0" />
+                          </linearGradient>
+                        </defs>
+                        {/* grid lines */}
+                        {[20, 40, 60].map((y) => (
+                          <line key={y} x1="0" y1={y} x2="300" y2={y} stroke="currentColor" strokeOpacity="0.08" strokeWidth="1" className="text-neutral-400" />
+                        ))}
+                        {/* Added area */}
+                        <motion.path
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity: 1 }}
+                          transition={{ duration: 1.4, delay: 0.8 }}
+                          d="M0,55 C30,50 50,30 75,32 C100,34 120,18 150,22 C180,26 200,12 225,15 C250,18 280,28 300,24"
+                          fill="none"
+                          stroke="#22c55e"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        />
+                        <path d="M0,55 C30,50 50,30 75,32 C100,34 120,18 150,22 C180,26 200,12 225,15 C250,18 280,28 300,24 L300,80 L0,80 Z" fill="url(#heroAdded)" />
+                        {/* Removed area */}
+                        <motion.path
+                          initial={{ pathLength: 0, opacity: 0 }}
+                          animate={{ pathLength: 1, opacity: 1 }}
+                          transition={{ duration: 1.4, delay: 1 }}
+                          d="M0,62 C30,60 50,52 75,55 C100,58 120,48 150,50 C180,52 200,44 225,46 C250,48 280,54 300,50"
+                          fill="none"
+                          stroke="#e63946"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        />
+                        <path d="M0,62 C30,60 50,52 75,55 C100,58 120,48 150,50 C180,52 200,44 225,46 C250,48 280,54 300,50 L300,80 L0,80 Z" fill="url(#heroRemoved)" />
+                      </svg>
                     </div>
-                    <div className="space-y-2">
+
+                    {/* Encomendas recentes com badges (estilo real) */}
+                    <div className="space-y-1.5">
                       {[
-                        { n: 'AE1234567890PT', s: 'delivered' },
-                        { n: 'AE9876543210PT', s: 'in_transit' },
-                        { n: 'AE4567890123PT', s: 'pending' }
+                        { n: 'AE1234567890PT', name: 'João Silva', s: 'delivered' },
+                        { n: 'AE9876543210PT', name: 'Maria Costa', s: 'in_transit' },
+                        { n: 'AE4567890123PT', name: 'Pedro Santos', s: 'pending' }
                       ].map((o, i) => (
                         <motion.div
                           key={o.n}
-                          initial={{ x: -20, opacity: 0 }}
+                          initial={{ x: -16, opacity: 0 }}
                           animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: 0.8 + i * 0.15 }}
-                          className="flex items-center justify-between p-2.5 bg-neutral-50 dark:bg-neutral-800 rounded-lg text-xs"
+                          transition={{ delay: 1 + i * 0.15 }}
+                          className="flex items-center justify-between p-2 bg-neutral-50 dark:bg-neutral-800/70 rounded-lg border border-neutral-100 dark:border-neutral-800"
                         >
-                          <span className="font-mono">{o.n}</span>
-                          <span className={`px-2 py-0.5 rounded-full font-semibold ${
-                            o.s === 'delivered' ? 'bg-green-100 text-green-700' :
-                            o.s === 'in_transit' ? 'bg-purple-100 text-purple-700' :
-                            'bg-brand-yellow-100 text-brand-yellow-700'
+                          <div className="min-w-0">
+                            <div className="text-[10px] font-semibold truncate">{o.name}</div>
+                            <div className="text-[8px] text-neutral-500 font-mono truncate">{o.n}</div>
+                          </div>
+                          <span className={`px-1.5 py-0.5 rounded-full text-[8px] font-semibold flex-shrink-0 ${
+                            o.s === 'delivered' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' :
+                            o.s === 'in_transit' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' :
+                            'bg-brand-yellow-100 text-brand-yellow-700 dark:bg-brand-yellow-900/40 dark:text-brand-yellow-300'
                           }`}>
                             {o.s === 'delivered' ? 'Entregue' : o.s === 'in_transit' ? 'Em trânsito' : 'Pendente'}
                           </span>
@@ -282,30 +392,30 @@ export default function Landing() {
                 <motion.div
                   animate={{ y: [0, -12, 0] }}
                   transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
-                  className="absolute -bottom-4 -left-4 bg-white dark:bg-neutral-900 rounded-2xl p-4 shadow-xl border border-neutral-200 dark:border-neutral-800 hidden sm:block"
+                  className="absolute -bottom-5 -left-5 bg-white dark:bg-neutral-900 rounded-2xl p-3.5 shadow-xl border border-neutral-200 dark:border-neutral-800 hidden sm:block"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-brand-yellow-100 dark:bg-brand-yellow-900/30 flex items-center justify-center">
-                      <QrCode size={20} className="text-brand-yellow-600" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-xl bg-brand-yellow-100 dark:bg-brand-yellow-900/30 flex items-center justify-center">
+                      <QrCode size={18} className="text-brand-yellow-600" />
                     </div>
                     <div>
-                      <div className="text-xs text-neutral-500">QR Scanner</div>
-                      <div className="text-sm font-bold">Ativo</div>
+                      <div className="text-[10px] text-neutral-500">QR Scanner</div>
+                      <div className="text-xs font-bold">Ativo</div>
                     </div>
                   </div>
                 </motion.div>
                 <motion.div
                   animate={{ y: [0, 12, 0] }}
                   transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-                  className="absolute -top-4 -right-4 bg-white dark:bg-neutral-900 rounded-2xl p-4 shadow-xl border border-neutral-200 dark:border-neutral-800 hidden sm:block"
+                  className="absolute -top-5 -right-5 bg-white dark:bg-neutral-900 rounded-2xl p-3.5 shadow-xl border border-neutral-200 dark:border-neutral-800 hidden sm:block"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                      <Shield size={20} className="text-green-600" />
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-9 w-9 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                      <TrendingUp size={18} className="text-green-600" />
                     </div>
                     <div>
-                      <div className="text-xs text-neutral-500">Sistema</div>
-                      <div className="text-sm font-bold">99.9% uptime</div>
+                      <div className="text-[10px] text-neutral-500">Vendas hoje</div>
+                      <div className="text-xs font-bold">+18%</div>
                     </div>
                   </div>
                 </motion.div>
@@ -316,24 +426,33 @@ export default function Landing() {
       </section>
 
       {/* TRUST BAR */}
-      <section className="py-8 border-y border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50">
-        <div className="max-w-7xl mx-auto px-4 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+      <section className="py-12 border-y border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900/50 relative overflow-hidden">
+        <div className="absolute inset-0 dot-pattern opacity-30" />
+        <div className="relative max-w-7xl mx-auto px-4 lg:px-8">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {[
-              { v: '500+', l: 'PMEs clientes' },
-              { v: '2M+', l: 'Produtos geridos' },
-              { v: '150k', l: 'Encomendas/mês' },
-              { v: '99.9%', l: 'Uptime garantido' }
+              { icon: Users, end: 500, suffix: '+', l: 'PMEs clientes' },
+              { icon: Package, end: 2, suffix: 'M+', l: 'Produtos geridos' },
+              { icon: Truck, end: 150, suffix: 'k', l: 'Encomendas/mês' },
+              { icon: Zap, end: 99.9, decimals: 1, suffix: '%', l: 'Uptime garantido' }
             ].map((s, i) => (
               <motion.div
                 key={s.l}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 14 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
+                className="group flex flex-col items-center text-center md:flex-row md:text-left md:items-center gap-3"
               >
-                <div className="font-display text-3xl md:text-4xl font-bold text-brand-red-500">{s.v}</div>
-                <div className="text-xs md:text-sm text-neutral-600 dark:text-neutral-400 mt-1">{s.l}</div>
+                <div className="h-12 w-12 rounded-2xl bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:border-brand-red-500/40 transition flex-shrink-0">
+                  <s.icon size={22} className="text-brand-red-500" />
+                </div>
+                <div>
+                  <div className="font-display text-3xl md:text-4xl font-bold text-neutral-900 dark:text-white leading-none">
+                    <CountUp end={s.end} decimals={s.decimals || 0} /><span className="text-brand-red-500">{s.suffix}</span>
+                  </div>
+                  <div className="text-xs md:text-sm text-neutral-600 dark:text-neutral-400 mt-1">{s.l}</div>
+                </div>
               </motion.div>
             ))}
           </div>
@@ -370,13 +489,20 @@ export default function Landing() {
                 viewport={{ once: true, margin: '-50px' }}
                 transition={{ duration: 0.5, delay: i * 0.08 }}
                 whileHover={{ y: -6 }}
-                className="group relative p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 hover:border-brand-red-500/50 transition-all"
+                className="group relative p-6 bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-200 dark:border-neutral-800 hover:border-brand-red-500/50 hover:shadow-xl hover:shadow-brand-red-500/5 transition-all overflow-hidden"
               >
-                <div className={`h-12 w-12 rounded-xl ${f.color === 'red' ? 'bg-brand-red-500' : 'bg-brand-yellow-500'} flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform`}>
-                  <f.icon size={24} />
+                {/* Glow decorativo no hover */}
+                <div className={`absolute -top-12 -right-12 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${f.color === 'red' ? 'bg-brand-red-500/20' : 'bg-brand-yellow-500/20'}`} />
+                <div className="relative">
+                  <div className={`h-12 w-12 rounded-xl ${f.color === 'red' ? 'bg-brand-red-500 shadow-lg shadow-brand-red-500/30' : 'bg-brand-yellow-500 shadow-lg shadow-brand-yellow-500/30'} flex items-center justify-center text-white mb-4 group-hover:scale-110 group-hover:rotate-3 transition-transform`}>
+                    <f.icon size={24} />
+                  </div>
+                  <h3 className="font-bold text-lg mb-2 flex items-center gap-1.5">
+                    {f.title}
+                    <ArrowRight size={16} className="text-brand-red-500 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                  </h3>
+                  <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">{f.desc}</p>
                 </div>
-                <h3 className="font-bold text-lg mb-2">{f.title}</h3>
-                <p className="text-sm text-neutral-600 dark:text-neutral-400 leading-relaxed">{f.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -514,7 +640,7 @@ export default function Landing() {
                     Passo {step.n}
                   </div>
                 </div>
-                <div className="font-display text-7xl font-bold text-brand-red-500/10 leading-none mb-3">
+                <div className="font-display text-7xl font-bold text-brand-red-500/40 dark:text-brand-red-500/60 leading-none mb-3">
                   {step.n}
                 </div>
                 <h3 className="text-xl font-bold mb-2">{step.title}</h3>
@@ -543,7 +669,7 @@ export default function Landing() {
               {
                 tag: 'Stock em tempo real',
                 title: 'Cada movimento. Cada produto. Visível.',
-                desc: 'Adicione, retire ou ajuste quantidades com um clique. O sistema guarda tudo num histórico auditável e alerta-o quando o stock está a acabar — antes que perca uma venda.',
+                desc: 'Adicione, retire ou ajuste quantidades com um clique. O sistema guarda tudo num histórico auditável e avisa-o quando o stock está a acabar, antes que perca uma venda.',
                 img: 'https://images.pexels.com/photos/1797428/pexels-photo-1797428.jpeg?auto=compress&cs=tinysrgb&w=1200',
                 bullets: ['Alertas automáticos de stock baixo', 'Histórico completo de movimentos', 'Edição inline rápida'],
                 reverse: false
@@ -905,7 +1031,7 @@ export default function Landing() {
             </div>
             <div className="mt-1 font-bold text-lg">{selectedPlan?.name} · {selectedPlan?.price}€/mês</div>
             <div className="text-xs text-neutral-600 dark:text-neutral-400 mt-1">
-              Pagamento via Stripe (modo de teste). Use o cartão 4242 4242 4242 4242 — qualquer data e CVC.
+              Pagamento via Stripe (modo de teste). Use o cartão 4242 4242 4242 4242 com qualquer data e CVC.
             </div>
           </div>
 
@@ -950,7 +1076,7 @@ export default function Landing() {
       >
         <div className="space-y-4">
           <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-sm">
-            A sua conta foi criada. Guarde estas credenciais — a password não voltará a ser mostrada.
+            A sua conta foi criada. Guarde bem estas credenciais, pois a password não voltará a ser mostrada.
           </div>
           <div className="space-y-3">
             <div>

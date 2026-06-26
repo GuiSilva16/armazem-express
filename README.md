@@ -570,7 +570,8 @@ pnpm test
 
 Além deste README, o projeto inclui documentação na pasta `docs/`:
 
-- **`docs/diagrama-er.svg`** / **`docs/diagrama-er.png`** — Diagrama Entidade-Relação da base de dados (todas as 10 tabelas e relações)
+- **`docs/API.md`** — Documentação completa da API REST: o que é uma API REST, autenticação JWT, e todos os endpoints com exemplos
+- **`docs/diagrama-er.svg`** / **`docs/diagrama-er.png`** — Diagrama Entidade-Relação da base de dados (11 tabelas, relações e integração Stripe)
 - **`docs/ADMIN_VS_FUNCIONARIO.md`** — Guia completo de permissões e como criar funcionários
 
 ---

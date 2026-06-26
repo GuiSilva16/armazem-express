@@ -18,3 +18,9 @@ build/
 .idea/
 
 .claude/
+
+# Backups locais da Landing (cópias de segurança, não versionar)
+frontend/src/pages/Landing.backup.jsx
+frontend/src/pages/Landing.before-apple.jsx
+frontend/src/pages/Landing.v3-backup.jsx
+frontend/src/pages/Landing.v4-backup.jsx

@@ -251,7 +251,7 @@ export default function Dashboard() {
                   />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="mt-3 space-y-1.5 max-h-28 overflow-y-auto">
+              <div className="mt-3 space-y-1.5 max-h-28 overflow-y-auto pr-3">
                 {categoryData.map((c, i) => (
                   <div key={c.name} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2 min-w-0">

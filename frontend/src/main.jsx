@@ -5,6 +5,8 @@ import { Toaster } from 'react-hot-toast';
 import App from './App.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
+import CookieConsent from './components/CookieConsent.jsx';
+import InstallPrompt from './components/InstallPrompt.jsx';
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -13,6 +15,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <ThemeProvider>
         <AuthProvider>
           <App />
+          <CookieConsent />
+          <InstallPrompt />
           <Toaster
             position="top-right"
             toastOptions={{

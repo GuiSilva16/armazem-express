@@ -37,10 +37,16 @@ export const StatCard = ({ icon: Icon, label, value, subtitle, color = 'red', tr
             </div>
           )}
         </div>
-        <div className={`text-3xl font-bold font-display ${textColors[color]}`}>
-          {value}
+        <div className="h-9 flex items-end">
+          <span
+            className={`font-bold font-display tabular-nums whitespace-nowrap leading-none ${textColors[color]} ${
+              String(value).length > 9 ? 'text-2xl' : 'text-3xl'
+            }`}
+          >
+            {value}
+          </span>
         </div>
-        <div className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mt-1">
+        <div className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 mt-2">
           {label}
         </div>
         {subtitle && (

@@ -147,3 +147,23 @@ table.modern-table tbody tr:hover {
   background-image: radial-gradient(circle, rgba(230, 57, 70, 0.2) 1px, transparent 1px);
   background-size: 24px 24px;
 }
+
+/* Marquee / ticker contínuo */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 40s linear infinite;
+}
+.marquee-pause:hover .animate-marquee {
+  animation-play-state: paused;
+}
+
+/* Grelha técnica em tom neutro (para fundos escuros) */
+.tech-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
