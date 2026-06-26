@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import {
   Package, AlertTriangle, CheckCircle2, XCircle,
   Truck, Clock, DollarSign, TrendingUp, ArrowRight, Plus, RefreshCw,
-  ShoppingCart, Copy
+  ShoppingCart, Copy, MapPin, ArrowUpRight, HeartPulse, Printer, ClipboardList, Trophy, BellRing
 } from 'lucide-react';
 import {
   AreaChart, Area, PieChart, Pie, Cell,
@@ -23,13 +23,14 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [days, setDays] = useState(7);
   const { user, plan } = useAuth();
   const navigate = useNavigate();
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setRefreshing(true);
     try {
-      const { data } = await api.get('/dashboard');
+      const { data } = await api.get('/dashboard', { params: { days } });
       setData(data);
       setLastUpdate(new Date());
     } catch {}
@@ -37,7 +38,7 @@ export default function Dashboard() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [days]);
 
   useEffect(() => {
     load();
@@ -49,7 +50,27 @@ export default function Dashboard() {
   if (loading) return <LoadingSpinner size="lg" />;
   if (!data) return null;
 
-  const { stockStats, orderStats, lowStockProducts, recentOrders, movementsByDay, byCategory, reorderSuggestions = [] } = data;
+  const { stockStats, orderStats, lowStockProducts, recentOrders, movementsByDay, byCategory, reorderSuggestions = [], topByValue = [] } = data;
+
+  // Saudação consoante a hora de Portugal (Europe/Lisbon), independente do fuso do dispositivo
+  const ptHour = parseInt(
+    new Date().toLocaleString('en-GB', { timeZone: 'Europe/Lisbon', hour: '2-digit', hour12: false }),
+    10
+  ) % 24;
+  const greeting =
+    ptHour >= 6 && ptHour < 13 ? 'Bom dia'
+    : ptHour >= 13 && ptHour < 20 ? 'Boa tarde'
+    : 'Boa noite';
+
+  // Saúde do inventário: % de produtos com stock saudável
+  const healthPct = stockStats.total > 0
+    ? Math.round((stockStats.inStock / stockStats.total) * 100)
+    : 100;
+  const health =
+    healthPct >= 80 ? { label: 'Saudável', color: '#22c55e', text: 'text-green-500' }
+    : healthPct >= 50 ? { label: 'Requer atenção', color: '#f4b01d', text: 'text-brand-yellow-500' }
+    : { label: 'Crítico', color: '#e63946', text: 'text-brand-red-500' };
+  const ringCirc = 2 * Math.PI * 52;
 
   const copyOrderList = () => {
     if (reorderSuggestions.length === 0) return;
@@ -63,6 +84,57 @@ export default function Dashboard() {
       () => toast.error('Não foi possível copiar')
     );
   };
+
+  // Copiar resumo do dia (para email/mensagem)
+  const copyDailySummary = () => {
+    const date = new Date().toLocaleDateString('pt-PT');
+    const text = [
+      `📊 Resumo do dia · ${user?.companyName} · ${date}`,
+      ``,
+      `STOCK`,
+      `• Total: ${stockStats.total} produtos (${stockStats.totalUnits} unidades)`,
+      `• Em stock: ${stockStats.inStock} | Baixo: ${stockStats.lowStock} | Sem stock: ${stockStats.outOfStock}`,
+      `• Valor do inventário: ${formatCurrency(stockStats.totalValue)}`,
+      `• Saúde do inventário: ${healthPct}% (${health.label})`,
+      ``,
+      `ENCOMENDAS`,
+      `• Total: ${orderStats.total} | Pendentes: ${orderStats.pending} | Em trânsito: ${orderStats.inTransit} | Entregues: ${orderStats.delivered}`,
+      ``,
+      reorderSuggestions.length
+        ? `⚠️ ${reorderSuggestions.length} produto(s) a precisar de reposição`
+        : `✅ Sem reposições urgentes`
+    ].join('\n');
+    navigator.clipboard.writeText(text).then(
+      () => toast.success('Resumo do dia copiado'),
+      () => toast.error('Não foi possível copiar')
+    );
+  };
+
+  // Alertas consolidados (com ações)
+  const alerts = [
+    stockStats.outOfStock > 0 && {
+      icon: XCircle, tone: 'red',
+      text: `${stockStats.outOfStock} produto(s) sem stock`,
+      action: 'Repor', to: '/app/stock?status=out_of_stock'
+    },
+    stockStats.lowStock > 0 && {
+      icon: AlertTriangle, tone: 'yellow',
+      text: `${stockStats.lowStock} produto(s) com stock baixo`,
+      action: 'Ver', to: '/app/stock?status=low_stock'
+    },
+    orderStats.pending > 0 && {
+      icon: Clock, tone: 'yellow',
+      text: `${orderStats.pending} encomenda(s) por processar`,
+      action: 'Processar', to: '/app/orders?status=pending'
+    },
+    reorderSuggestions.length > 0 && {
+      icon: ShoppingCart, tone: 'red',
+      text: `${reorderSuggestions.length} produto(s) sugeridos para reposição`,
+      action: 'Ver lista', to: null
+    }
+  ].filter(Boolean);
+
+  const maxValue = Math.max(...topByValue.map((p) => p.total_value), 1);
 
   const movementData = (movementsByDay || []).map((m) => ({
     day: new Date(m.day).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }),
@@ -87,7 +159,8 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="space-y-5">
+    <>
+    <div className="space-y-5 screen-only">
       {/* Welcome banner */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -99,7 +172,7 @@ export default function Dashboard() {
         <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <div className="text-sm font-semibold opacity-90">
-              Olá, {user?.name?.split(' ')[0]} 👋
+              {greeting}, {user?.name?.split(' ')[0]} 👋
             </div>
             <h1 className="font-display text-2xl md:text-3xl font-bold mt-1">
               {user?.companyName}
@@ -112,7 +185,7 @@ export default function Dashboard() {
               <span>{orderStats.total} encomendas</span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 no-print">
             <button
               onClick={() => load()}
               disabled={refreshing}
@@ -122,16 +195,18 @@ export default function Dashboard() {
               <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
             </button>
             <button
-              onClick={() => navigate('/app/stock/add')}
-              className="px-4 py-2.5 bg-white text-brand-red-600 rounded-xl font-semibold hover:bg-brand-yellow-300 transition text-sm flex items-center gap-2"
+              onClick={copyDailySummary}
+              className="p-2.5 bg-white/10 backdrop-blur border border-white/20 text-white rounded-xl hover:bg-white/20 transition"
+              title="Copiar resumo do dia"
             >
-              <Plus size={16} /> Novo produto
+              <ClipboardList size={16} />
             </button>
             <button
-              onClick={() => navigate('/app/orders/new')}
-              className="px-4 py-2.5 bg-white/10 backdrop-blur border border-white/20 text-white rounded-xl font-semibold hover:bg-white/20 transition text-sm flex items-center gap-2"
+              onClick={() => window.print()}
+              className="p-2.5 bg-white/10 backdrop-blur border border-white/20 text-white rounded-xl hover:bg-white/20 transition"
+              title="Imprimir / exportar relatório (PDF)"
             >
-              <Truck size={16} /> Enviar
+              <Printer size={16} />
             </button>
           </div>
         </div>
@@ -152,6 +227,127 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Saúde do Inventário + Ações Rápidas */}
+      <div className="grid lg:grid-cols-3 gap-4">
+        {/* Saúde do Inventário */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="card p-5 flex items-center gap-5"
+        >
+          <div className="relative flex-shrink-0">
+            <svg width="120" height="120" viewBox="0 0 120 120" className="-rotate-90">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="currentColor" strokeWidth="10" className="text-neutral-100 dark:text-neutral-800" />
+              <motion.circle
+                cx="60" cy="60" r="52" fill="none" stroke={health.color} strokeWidth="10" strokeLinecap="round"
+                strokeDasharray={ringCirc}
+                initial={{ strokeDashoffset: ringCirc }}
+                animate={{ strokeDashoffset: ringCirc - (ringCirc * healthPct) / 100 }}
+                transition={{ duration: 1, ease: 'easeOut' }}
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className={`text-3xl font-bold font-display ${health.text}`}>{healthPct}%</span>
+              <span className="text-[10px] text-neutral-500 -mt-0.5">saudável</span>
+            </div>
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <HeartPulse size={18} className={health.text} />
+              <h3 className="font-bold">Saúde do Inventário</h3>
+            </div>
+            <div className={`text-sm font-semibold ${health.text} mb-3`}>{health.label}</div>
+            <div className="space-y-1.5 text-xs">
+              <div className="flex items-center justify-between gap-4">
+                <span className="flex items-center gap-1.5 text-neutral-600 dark:text-neutral-400"><span className="h-2 w-2 rounded-full bg-green-500" /> Em stock</span>
+                <span className="font-bold">{stockStats.inStock}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="flex items-center gap-1.5 text-neutral-600 dark:text-neutral-400"><span className="h-2 w-2 rounded-full bg-brand-yellow-500" /> Stock baixo</span>
+                <span className="font-bold">{stockStats.lowStock}</span>
+              </div>
+              <div className="flex items-center justify-between gap-4">
+                <span className="flex items-center gap-1.5 text-neutral-600 dark:text-neutral-400"><span className="h-2 w-2 rounded-full bg-brand-red-500" /> Sem stock</span>
+                <span className="font-bold">{stockStats.outOfStock}</span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Ações Rápidas */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25 }}
+          className="lg:col-span-2 card p-5"
+        >
+          <h3 className="font-bold mb-1">Ações Rápidas</h3>
+          <p className="text-xs text-neutral-500 mb-4">Atalhos para as tarefas mais comuns</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { icon: Plus, label: 'Novo produto', to: '/app/stock/add', color: 'bg-brand-red-500' },
+              { icon: Truck, label: 'Nova encomenda', to: '/app/orders/new', color: 'bg-blue-500' },
+              { icon: AlertTriangle, label: 'Stock baixo', to: '/app/stock?status=low_stock', color: 'bg-brand-yellow-500' },
+              { icon: MapPin, label: 'Tracking', to: '/app/tracking', color: 'bg-green-500' }
+            ].map((a) => (
+              <button
+                key={a.label}
+                onClick={() => navigate(a.to)}
+                className="group flex flex-col items-start gap-3 p-4 rounded-xl border border-neutral-200 dark:border-neutral-800 hover:border-brand-red-500/50 hover:shadow-md transition-all text-left"
+              >
+                <div className={`h-10 w-10 rounded-lg ${a.color} flex items-center justify-center text-white group-hover:scale-110 transition-transform`}>
+                  <a.icon size={20} />
+                </div>
+                <span className="text-sm font-semibold flex items-center gap-1">
+                  {a.label}
+                  <ArrowUpRight size={14} className="text-neutral-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                </span>
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Painel de alertas consolidado */}
+      {alerts.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.28 }}
+          className="card p-5"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <BellRing size={18} className="text-brand-red-500" />
+            <h3 className="font-bold">Alertas</h3>
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-brand-red-100 text-brand-red-700 dark:bg-brand-red-900/30 dark:text-brand-red-300 text-xs font-bold">
+              {alerts.length}
+            </span>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-2.5">
+            {alerts.map((a, i) => (
+              <div
+                key={i}
+                className={`flex items-center gap-3 p-3 rounded-xl border ${
+                  a.tone === 'red'
+                    ? 'bg-brand-red-50 dark:bg-brand-red-900/15 border-brand-red-200 dark:border-brand-red-900/40'
+                    : 'bg-brand-yellow-50 dark:bg-brand-yellow-900/15 border-brand-yellow-200 dark:border-brand-yellow-900/40'
+                }`}
+              >
+                <a.icon size={18} className={a.tone === 'red' ? 'text-brand-red-500 flex-shrink-0' : 'text-brand-yellow-600 flex-shrink-0'} />
+                <span className="text-sm font-medium flex-1 min-w-0">{a.text}</span>
+                <button
+                  onClick={() => a.to ? navigate(a.to) : document.getElementById('reorder')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="text-xs font-semibold text-brand-red-500 hover:underline flex items-center gap-0.5 flex-shrink-0 no-print"
+                >
+                  {a.action} <ArrowRight size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
       {/* Charts lado a lado */}
       <div className="grid lg:grid-cols-3 gap-4">
         <motion.div
@@ -160,10 +356,10 @@ export default function Dashboard() {
           transition={{ delay: 0.3 }}
           className="lg:col-span-2 card p-5"
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
             <div>
               <h3 className="font-bold">Movimento de Stock</h3>
-              <p className="text-xs text-neutral-500">Últimos 7 dias</p>
+              <p className="text-xs text-neutral-500">Últimos {days} dias</p>
             </div>
             <div className="flex items-center gap-3 text-xs">
               <div className="flex items-center gap-1.5">
@@ -173,6 +369,22 @@ export default function Dashboard() {
               <div className="flex items-center gap-1.5">
                 <div className="h-2 w-2 rounded-full bg-brand-red-500" />
                 Removido
+              </div>
+              {/* Toggle de período */}
+              <div className="flex items-center gap-1 p-0.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 no-print">
+                {[7, 30].map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDays(d)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-semibold transition ${
+                      days === d
+                        ? 'bg-white dark:bg-neutral-700 text-brand-red-500 shadow-sm'
+                        : 'text-neutral-500 hover:text-neutral-700 dark:hover:text-neutral-300'
+                    }`}
+                  >
+                    {d}d
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -267,9 +479,50 @@ export default function Dashboard() {
         </motion.div>
       </div>
 
+      {/* Top produtos por valor */}
+      {topByValue.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="card p-5"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <Trophy size={18} className="text-brand-yellow-500" />
+            <h3 className="font-bold">Top Produtos por Valor</h3>
+            <span className="text-xs text-neutral-500 hidden sm:inline">os mais valiosos em inventário</span>
+          </div>
+          <div className="space-y-3">
+            {topByValue.map((p, i) => (
+              <div key={p.id} onClick={() => navigate(`/app/stock/${p.id}`)} className="cursor-pointer group">
+                <div className="flex items-center justify-between gap-3 mb-1.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className={`h-6 w-6 rounded-md flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+                      i === 0 ? 'bg-brand-yellow-400 text-neutral-900' : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-500'
+                    }`}>{i + 1}</span>
+                    <span className="font-semibold text-sm truncate group-hover:text-brand-red-500 transition-colors">{p.name}</span>
+                    <span className="text-xs text-neutral-400 hidden md:inline">{p.quantity} un. × {formatCurrency(p.price)}</span>
+                  </div>
+                  <span className="font-bold text-sm flex-shrink-0">{formatCurrency(p.total_value)}</span>
+                </div>
+                <div className="h-2 rounded-full bg-neutral-100 dark:bg-neutral-800 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(p.total_value / maxValue) * 100}%` }}
+                    transition={{ duration: 0.8, delay: i * 0.08 }}
+                    className="h-full rounded-full bg-gradient-to-r from-brand-yellow-400 to-brand-red-500"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
       {/* Sugestões de reposição */}
       {reorderSuggestions.length > 0 && (
         <motion.div
+          id="reorder"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.45 }}
@@ -291,15 +544,15 @@ export default function Dashboard() {
             </button>
           </div>
           <div className="overflow-x-auto">
-            <table className="modern-table">
+            <table className="modern-table table-fixed w-full min-w-[760px]">
               <thead>
                 <tr>
-                  <th>Produto</th>
-                  <th>Stock</th>
-                  <th>Sugestão</th>
-                  <th>Fornecedor</th>
-                  <th className="text-right">Custo estimado</th>
-                  <th>Urgência</th>
+                  <th className="w-[32%]">Produto</th>
+                  <th className="w-[11%]">Stock</th>
+                  <th className="w-[12%]">Sugestão</th>
+                  <th className="w-[19%]">Fornecedor</th>
+                  <th className="w-[15%]">Custo est.</th>
+                  <th className="w-[11%]">Urgência</th>
                 </tr>
               </thead>
               <tbody>
@@ -315,7 +568,7 @@ export default function Dashboard() {
                     </td>
                     <td className="font-bold text-brand-red-500">{p.suggested_qty} un.</td>
                     <td className="text-sm">{p.supplier || <span className="text-neutral-400 italic">—</span>}</td>
-                    <td className="text-right font-semibold">{formatCurrency(p.estimated_cost)}</td>
+                    <td className="font-semibold">{formatCurrency(p.estimated_cost)}</td>
                     <td>
                       <span className={`chip ${
                         p.urgency === 'critical' ? 'bg-brand-red-100 text-brand-red-700 dark:bg-brand-red-900/30 dark:text-brand-red-300'
@@ -430,5 +683,99 @@ export default function Dashboard() {
         </motion.div>
       </div>
     </div>
+
+    {/* ===== Relatório limpo (só impressão / PDF) ===== */}
+    <div className="print-only text-black text-[12px] leading-snug">
+      <div className="flex items-center justify-between border-b-2 border-black pb-3 mb-5">
+        <div>
+          <div className="text-2xl font-bold">Relatório do Armazém</div>
+          <div className="text-sm">{user?.companyName} · Plano {plan?.name || '-'}</div>
+        </div>
+        <div className="text-right text-sm">
+          <div>{new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+          <div>{new Date().toLocaleTimeString('pt-PT')}</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-6 mb-6">
+        <div>
+          <div className="font-bold text-sm uppercase tracking-wide border-b border-black/30 pb-1 mb-2">Stock</div>
+          <table className="w-full">
+            <tbody>
+              <tr><td className="py-0.5">Total de produtos</td><td className="py-0.5 text-right font-semibold">{stockStats.total} ({stockStats.totalUnits} un.)</td></tr>
+              <tr><td className="py-0.5">Em stock</td><td className="py-0.5 text-right font-semibold">{stockStats.inStock}</td></tr>
+              <tr><td className="py-0.5">Stock baixo</td><td className="py-0.5 text-right font-semibold">{stockStats.lowStock}</td></tr>
+              <tr><td className="py-0.5">Sem stock</td><td className="py-0.5 text-right font-semibold">{stockStats.outOfStock}</td></tr>
+              <tr><td className="py-0.5">Valor do inventário</td><td className="py-0.5 text-right font-semibold">{formatCurrency(stockStats.totalValue)}</td></tr>
+              <tr><td className="py-0.5">Saúde do inventário</td><td className="py-0.5 text-right font-semibold">{healthPct}% ({health.label})</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <div className="font-bold text-sm uppercase tracking-wide border-b border-black/30 pb-1 mb-2">Encomendas</div>
+          <table className="w-full">
+            <tbody>
+              <tr><td className="py-0.5">Total</td><td className="py-0.5 text-right font-semibold">{orderStats.total}</td></tr>
+              <tr><td className="py-0.5">Pendentes</td><td className="py-0.5 text-right font-semibold">{orderStats.pending}</td></tr>
+              <tr><td className="py-0.5">Em trânsito</td><td className="py-0.5 text-right font-semibold">{orderStats.inTransit}</td></tr>
+              <tr><td className="py-0.5">Entregues</td><td className="py-0.5 text-right font-semibold">{orderStats.delivered}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {topByValue.length > 0 && (
+        <div className="mb-6">
+          <div className="font-bold text-sm uppercase tracking-wide border-b border-black/30 pb-1 mb-2">Top Produtos por Valor</div>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-black/40 text-left">
+                <th className="py-1">Produto</th><th className="py-1 text-right">Qtd.</th><th className="py-1 text-right">Preço</th><th className="py-1 text-right">Valor total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topByValue.map((p) => (
+                <tr key={p.id} className="border-b border-black/10">
+                  <td className="py-1">{p.name}</td>
+                  <td className="py-1 text-right">{p.quantity}</td>
+                  <td className="py-1 text-right">{formatCurrency(p.price)}</td>
+                  <td className="py-1 text-right font-semibold">{formatCurrency(p.total_value)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {reorderSuggestions.length > 0 && (
+        <div className="mb-6">
+          <div className="font-bold text-sm uppercase tracking-wide border-b border-black/30 pb-1 mb-2">Sugestões de Reposição</div>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="border-b border-black/40 text-left">
+                <th className="py-1">Produto</th><th className="py-1 text-right">Stock</th><th className="py-1 text-right">Sugestão</th><th className="py-1">Fornecedor</th><th className="py-1 text-right">Custo est.</th><th className="py-1">Urgência</th>
+              </tr>
+            </thead>
+            <tbody>
+              {reorderSuggestions.map((p) => (
+                <tr key={p.id} className="border-b border-black/10">
+                  <td className="py-1">{p.name}</td>
+                  <td className="py-1 text-right">{p.quantity} / {p.min_stock}</td>
+                  <td className="py-1 text-right font-semibold">{p.suggested_qty} un.</td>
+                  <td className="py-1">{p.supplier || '—'}</td>
+                  <td className="py-1 text-right">{formatCurrency(p.estimated_cost)}</td>
+                  <td className="py-1">{p.urgency === 'critical' ? 'Crítica' : p.urgency === 'high' ? 'Alta' : 'Média'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="text-[10px] text-black/50 border-t border-black/20 pt-2 mt-6">
+        Armazém Express · Relatório gerado automaticamente · {new Date().toLocaleString('pt-PT')}
+      </div>
+    </div>
+    </>
   );
 }

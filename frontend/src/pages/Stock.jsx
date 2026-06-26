@@ -131,7 +131,7 @@ export default function Stock() {
                 onClick={() => navigate('/app/stock/remove')}
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 border-brand-red-200 dark:border-brand-red-900 text-brand-red-500 font-semibold hover:bg-brand-red-50 dark:hover:bg-brand-red-900/20 transition text-sm"
               >
-                <Trash2 size={16} /> Remover
+                <Trash2 size={16} /> Eliminar
               </button>
             )}
             <button onClick={() => navigate('/app/stock/add')} className="btn-primary !py-2 !px-4 text-sm">

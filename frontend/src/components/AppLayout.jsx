@@ -44,7 +44,7 @@ const navItems = [
 ];
 
 const adminItems = [
-  { to: '/app/stock/remove', icon: Trash2, label: 'Remover Stock' },
+  { to: '/app/stock/remove', icon: Trash2, label: 'Eliminar Produtos' },
   { to: '/app/team', icon: Users, label: 'Equipa' },
   { to: '/app/activity', icon: ActivityIcon, label: 'Atividade', feature: 'activity_log' },
   { to: '/app/settings', icon: Settings, label: 'Definições' }
@@ -182,7 +182,7 @@ export default function AppLayout() {
         initial={false}
         animate={{ x: isDesktop || sidebarOpen ? 0 : -320 }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 flex flex-col"
+        className="no-print fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-neutral-900 border-r border-neutral-200 dark:border-neutral-800 flex flex-col"
       >
         <div className="p-6 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
           <NavLink to="/app" end className="rounded-xl -m-1 p-1 hover:opacity-80 transition-opacity" title="Ir para Dashboard">
@@ -285,9 +285,9 @@ export default function AppLayout() {
       </motion.aside>
 
       {/* Main */}
-      <div className="lg:ml-72">
+      <div className="lg:ml-72 print:ml-0">
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border-b border-neutral-200 dark:border-neutral-800">
+        <header className="no-print sticky top-0 z-30 bg-white/80 dark:bg-neutral-900/80 backdrop-blur-xl border-b border-neutral-200 dark:border-neutral-800">
           <div className="flex items-center justify-between px-4 lg:px-8 h-16">
             <button
               onClick={() => setSidebarOpen(true)}

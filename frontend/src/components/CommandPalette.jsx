@@ -21,7 +21,7 @@ const baseCommands = [
 ];
 
 const adminCommands = [
-  { id: 'remove', label: 'Remover Stock', hint: 'Apagar produtos', icon: Trash2, to: '/app/stock/remove', keywords: 'apagar delete' },
+  { id: 'remove', label: 'Eliminar Produtos', hint: 'Apagar produtos do catálogo', icon: Trash2, to: '/app/stock/remove', keywords: 'apagar delete remover' },
   { id: 'team', label: 'Gestão de Equipa', hint: 'Funcionários e admins', icon: Users, to: '/app/team', keywords: 'utilizadores users' },
   { id: 'activity', label: 'Registo de Atividade', hint: 'Auditoria', icon: ActivityIcon, to: '/app/activity', keywords: 'auditoria log historial', feature: 'activity_log' },
   { id: 'settings', label: 'Definições', hint: 'Conta e plano', icon: Settings, to: '/app/settings', keywords: 'config plano' }

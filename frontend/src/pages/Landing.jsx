@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useScroll, useTransform, AnimatePresence, useInView } from 'framer-motion';
+import { motion, useScroll, useTransform, AnimatePresence, useInView, useMotionTemplate } from 'framer-motion';
 import {
   ArrowRight,
   Package,
@@ -67,6 +67,18 @@ export default function Landing() {
   const heroY = useTransform(scrollY, [0, 500], [0, 150]);
   const heroOpacity = useTransform(scrollY, [0, 400], [1, 0]);
 
+  // Header que encolhe suavemente conforme a posição do scroll (0 → 160px)
+  const navRange = [0, 160];
+  const navOuterPad = useTransform(scrollY, navRange, [0, 16]);
+  const navMaxW = useTransform(scrollY, navRange, [2400, 1152]);
+  const navContentMaxW = useTransform(scrollY, navRange, [1200, 1120]);
+  const navRadius = useTransform(scrollY, navRange, [0, 18]);
+  const navHeight = useTransform(scrollY, navRange, [80, 56]);
+  const navInnerPad = useTransform(scrollY, navRange, [24, 18]);
+  const logoScale = useTransform(scrollY, navRange, [1, 0.78]);
+  const shadowAlpha = useTransform(scrollY, navRange, [0, 0.1]);
+  const navShadow = useMotionTemplate`0 12px 32px rgba(0,0,0,${shadowAlpha})`;
+
   useEffect(() => {
     api.get('/auth/plans').then(({ data }) => setPlans(data));
   }, []);
@@ -90,49 +102,90 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-neutral-950 overflow-hidden">
-      {/* Nav */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/70 dark:bg-neutral-950/70 backdrop-blur-xl border-b border-neutral-200/50 dark:border-neutral-800/50">
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 h-16 flex items-center justify-between">
-          <button
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="flex items-center cursor-pointer"
-            aria-label="Voltar ao topo"
+      {/* Nav — encolhe suavemente conforme a posição do scroll */}
+      <nav className="fixed top-0 left-0 right-0 z-50">
+        <motion.div style={{ paddingLeft: navOuterPad, paddingRight: navOuterPad, paddingTop: navOuterPad }}>
+          <motion.div
+            style={{ maxWidth: navMaxW, borderRadius: navRadius, boxShadow: navShadow }}
+            className="mx-auto w-full backdrop-blur-xl bg-white/80 dark:bg-neutral-900/75 border border-neutral-200/60 dark:border-neutral-800/60 overflow-hidden"
           >
-            <Logo size="md" />
-          </button>
-          <div className="hidden md:flex items-center gap-8 text-sm font-semibold">
-            <a href="#features" className="hover:text-brand-red-500 transition">Funcionalidades</a>
-            <a href="#pricing" className="hover:text-brand-red-500 transition">Planos</a>
-            <a href="#about" className="hover:text-brand-red-500 transition">Sobre</a>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleTheme}
-              className="p-2.5 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-xl transition-colors"
-              title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
-              aria-label="Alternar tema"
+            <motion.div
+              style={{ height: navHeight, maxWidth: navContentMaxW, paddingLeft: navInnerPad, paddingRight: navInnerPad }}
+              className="mx-auto w-full flex items-center justify-between"
             >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={theme}
-                  initial={{ rotate: -90, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: 90, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+              {/* Logo + wordmark (escala com o scroll) */}
+              <button
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="flex items-center cursor-pointer shrink-0"
+                aria-label="Voltar ao topo"
+              >
+                <motion.div style={{ scale: logoScale }} className="flex items-center gap-2.5 origin-left">
+                  <Logo size="lg" animated={false} />
+                  <div className="flex flex-col leading-none">
+                    <span className="font-display font-extrabold tracking-tight text-2xl text-neutral-900 dark:text-white">
+                      Armazém
+                    </span>
+                    <span className="font-bold uppercase text-brand-red-500 text-xs tracking-[0.35em] mt-0.5">
+                      Express
+                    </span>
+                  </div>
                 </motion.div>
-              </AnimatePresence>
-            </button>
-            <Link to="/login" className="hidden sm:inline-flex items-center px-4 py-2 text-sm font-semibold hover:text-brand-red-500 transition">
-              Entrar
-            </Link>
-            <a href="#pricing" className="btn-primary !py-2 !px-4 text-sm">
-              Começar agora
-              <ArrowRight size={16} />
-            </a>
-          </div>
-        </div>
+              </button>
+
+              {/* Links */}
+              <div className="hidden md:flex items-center gap-1">
+                {[
+                  { href: '#features', label: 'Funcionalidades' },
+                  { href: '#pricing', label: 'Planos' },
+                  { href: '#about', label: 'Sobre' }
+                ].map((l) => (
+                  <a
+                    key={l.href}
+                    href={l.href}
+                    className="px-3.5 py-2 text-sm font-medium text-neutral-600 dark:text-neutral-300 rounded-lg hover:text-brand-red-500 hover:bg-neutral-100/70 dark:hover:bg-neutral-800/70 transition-colors"
+                  >
+                    {l.label}
+                  </a>
+                ))}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={toggleTheme}
+                  className="p-2 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg transition-colors"
+                  title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+                  aria-label="Alternar tema"
+                >
+                  <AnimatePresence mode="wait">
+                    <motion.div
+                      key={theme}
+                      initial={{ rotate: -90, opacity: 0 }}
+                      animate={{ rotate: 0, opacity: 1 }}
+                      exit={{ rotate: 90, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                    </motion.div>
+                  </AnimatePresence>
+                </button>
+                <Link
+                  to="/login"
+                  className="hidden sm:inline-flex items-center px-3.5 py-2 text-sm font-medium text-neutral-700 dark:text-neutral-200 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  Entrar
+                </Link>
+                <a
+                  href="#pricing"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold bg-brand-red-500 text-white rounded-xl hover:bg-brand-red-600 transition-colors shadow-sm"
+                >
+                  Começar agora
+                  <ArrowRight size={15} />
+                </a>
+              </div>
+            </motion.div>
+          </motion.div>
+        </motion.div>
       </nav>
 
       {/* HERO */}

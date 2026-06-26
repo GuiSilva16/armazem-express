@@ -135,6 +135,8 @@ router.get('/search', authenticate, (req, res) => {
 router.get('/', authenticate, (req, res) => {
   try {
     const companyId = req.user.company_id;
+    // Período do gráfico de movimentos (7 ou 30 dias)
+    const days = [7, 30].includes(Number(req.query.days)) ? Number(req.query.days) : 7;
 
     // Stock stats
     const stockStats = db
@@ -173,6 +175,15 @@ router.get('/', authenticate, (req, res) => {
       )
       .all(companyId);
 
+    // Top produtos por valor em inventário (quantidade × preço)
+    const topByValue = db
+      .prepare(
+        `SELECT id, name, category, quantity, price, (quantity * price) as total_value
+         FROM products WHERE company_id = ? AND quantity > 0
+         ORDER BY total_value DESC LIMIT 5`
+      )
+      .all(companyId);
+
     // Produtos com stock baixo
     const lowStockProducts = db
       .prepare(
@@ -193,7 +204,7 @@ router.get('/', authenticate, (req, res) => {
       )
       .all(companyId);
 
-    // Movimentos últimos 7 dias
+    // Movimentos no período escolhido (7 ou 30 dias)
     const movementsByDay = db
       .prepare(
         `SELECT
@@ -201,11 +212,11 @@ router.get('/', authenticate, (req, res) => {
           SUM(CASE WHEN type = 'add' THEN quantity ELSE 0 END) as added,
           SUM(CASE WHEN type = 'remove' OR type = 'ship' THEN quantity ELSE 0 END) as removed
          FROM stock_movements
-         WHERE company_id = ? AND created_at >= date('now', '-7 days')
+         WHERE company_id = ? AND created_at >= date('now', ?)
          GROUP BY date(created_at)
          ORDER BY day ASC`
       )
-      .all(companyId);
+      .all(companyId, `-${days} days`);
 
     // Produtos por categoria
     const byCategory = db
@@ -253,11 +264,13 @@ router.get('/', authenticate, (req, res) => {
       stockStats,
       orderStats,
       topProducts,
+      topByValue,
       lowStockProducts,
       recentOrders,
       movementsByDay,
       byCategory,
-      reorderSuggestions
+      reorderSuggestions,
+      days
     });
   } catch (error) {
     console.error('Erro no dashboard:', error);

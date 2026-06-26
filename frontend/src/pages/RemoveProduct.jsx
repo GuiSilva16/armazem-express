@@ -95,8 +95,8 @@ export default function RemoveProduct() {
       </button>
 
       <PageHeader
-        title="Remover Produtos"
-        subtitle="Selecione os produtos a remover do inventário. Esta ação é irreversível."
+        title="Eliminar Produtos"
+        subtitle="Apaga produtos por completo do catálogo (não confundir com baixar stock). Esta ação é irreversível."
         actions={
           selected.size > 0 && (
             <motion.button
