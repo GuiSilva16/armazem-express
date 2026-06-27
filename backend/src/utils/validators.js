@@ -36,7 +36,7 @@ export const isValidName = (name) => {
 };
 
 /**
- * Valida password forte (mín. 8, 1 maiúscula, 1 minúscula, 1 número)
+ * Valida password forte (mín. 8, 1 maiúscula, 1 minúscula, 1 número, 1 símbolo)
  */
 export const isStrongPassword = (password) => {
   if (!password || typeof password !== 'string') return false;
@@ -44,15 +44,18 @@ export const isStrongPassword = (password) => {
   if (!/[A-Z]/.test(password)) return false;
   if (!/[a-z]/.test(password)) return false;
   if (!/\d/.test(password)) return false;
+  if (!/[^A-Za-z0-9]/.test(password)) return false;
   return true;
 };
 
 /**
- * Valida que um valor é um número positivo
+ * Valida que um valor é um número positivo (>= 0).
+ * Rejeita null, string vazia e booleanos (que o Number() converteria em 0/1).
  */
 export const isPositiveNumber = (value) => {
+  if (value === null || value === '' || typeof value === 'boolean') return false;
   const num = Number(value);
-  return !isNaN(num) && num >= 0 && isFinite(num);
+  return !isNaN(num) && isFinite(num) && num >= 0;
 };
 
 /**

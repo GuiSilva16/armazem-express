@@ -42,10 +42,12 @@ export const generateTrackingNumber = () => {
 /**
  * Gera um SKU único baseado na categoria e timestamp
  */
-export const generateSKU = (category = 'PROD') => {
-  const prefix = category.substring(0, 3).toUpperCase();
+export const generateSKU = (category) => {
+  const clean = (category || '').toString().trim();
+  const prefix = clean ? clean.substring(0, 3).toUpperCase() : 'GEN';
   const timestamp = Date.now().toString().slice(-6);
-  const random = crypto.randomInt(1000).toString().padStart(3, '0');
+  // 4 bytes (8 hex) garante unicidade mesmo em criações em série
+  const random = crypto.randomBytes(4).toString('hex').toUpperCase();
   return `${prefix}-${timestamp}-${random}`;
 };
 

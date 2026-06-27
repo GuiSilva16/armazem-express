@@ -27,23 +27,21 @@ let testToken;
 let testProductId;
 
 beforeAll(async () => {
-  // Limpa e cria dados de teste isolados
-  const companyId = 'test-company-' + Date.now();
-  const userId = 'test-user-' + Date.now();
-
-  // Criar plano (ignora se já existe)
+  // Cria dados de teste isolados (IDs inteiros gerados pela BD)
   const plan = db.prepare('SELECT id FROM plans LIMIT 1').get();
 
-  db.prepare(`
-    INSERT INTO companies (id, name, email, plan_id, subscription_status)
-    VALUES (?, ?, ?, ?, 'active')
-  `).run(companyId, 'Empresa Teste', `test-${Date.now()}@test.pt`, plan.id);
+  const companyRes = db.prepare(`
+    INSERT INTO companies (name, email, plan_id, subscription_status)
+    VALUES (?, ?, ?, 'active')
+  `).run('Empresa Teste', `test-${Date.now()}@test.pt`, plan.id);
+  const companyId = companyRes.lastInsertRowid;
 
   const hash = bcrypt.hashSync('TestPass@2025', 10);
-  db.prepare(`
-    INSERT INTO users (id, company_id, name, email, password_hash, role, active)
-    VALUES (?, ?, ?, ?, ?, 'admin', 1)
-  `).run(userId, companyId, 'Admin Teste', `admin-${Date.now()}@test.pt`, hash);
+  const userRes = db.prepare(`
+    INSERT INTO users (company_id, name, email, password_hash, role, active)
+    VALUES (?, ?, ?, ?, 'admin', 1)
+  `).run(companyId, 'Admin Teste', `admin-${Date.now()}@test.pt`, hash);
+  const userId = userRes.lastInsertRowid;
 
   testCompanyId = companyId;
   testUserId = userId;
@@ -54,7 +52,14 @@ beforeAll(async () => {
 });
 
 afterAll(() => {
-  // Limpeza
+  // Limpeza (ordem filho → pai para respeitar as foreign keys)
+  const orders = db.prepare('SELECT id FROM orders WHERE company_id = ?').all(testCompanyId);
+  for (const o of orders) {
+    db.prepare('DELETE FROM order_items WHERE order_id = ?').run(o.id);
+    db.prepare('DELETE FROM tracking_events WHERE order_id = ?').run(o.id);
+  }
+  db.prepare('DELETE FROM orders WHERE company_id = ?').run(testCompanyId);
+  db.prepare('DELETE FROM stock_movements WHERE company_id = ?').run(testCompanyId);
   db.prepare('DELETE FROM products WHERE company_id = ?').run(testCompanyId);
   db.prepare('DELETE FROM users WHERE company_id = ?').run(testCompanyId);
   db.prepare('DELETE FROM companies WHERE id = ?').run(testCompanyId);
