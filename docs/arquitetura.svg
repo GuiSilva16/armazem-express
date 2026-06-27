@@ -1,0 +1,99 @@
+<svg viewBox="0 0 1040 520" xmlns="http://www.w3.org/2000/svg" role="img" font-family="'Segoe UI', system-ui, sans-serif">
+  <title>Arquitetura e Deployment do Armazém Express</title>
+  <desc>O utilizador acede ao frontend React alojado na Vercel, que comunica via API REST com o backend Node/Express alojado no Render, que usa uma base de dados SQLite e integra o Stripe. O GitHub faz deploy automático para ambas as plataformas.</desc>
+
+  <!-- fundo -->
+  <rect x="0" y="0" width="1040" height="520" rx="16" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1.5"/>
+
+  <!-- título -->
+  <text x="40" y="46" font-size="23" font-weight="700" fill="#0F172A">Arquitetura &amp; Deployment — Armazém Express</text>
+  <text x="40" y="70" font-size="13" fill="#64748B">Aplicação web SaaS de gestão de armazém (WMS) · cliente–servidor</text>
+  <rect x="40" y="80" width="60" height="4" rx="2" fill="#E11D2A"/>
+
+  <!-- legenda -->
+  <rect x="745" y="34" width="255" height="50" rx="8" fill="#F8FAFC" stroke="#E2E8F0"/>
+  <rect x="759" y="46" width="12" height="12" rx="3" fill="#FDECEC" stroke="#E11D2A"/>
+  <text x="778" y="56" font-size="11" fill="#475569">Componente que desenvolvi</text>
+  <rect x="759" y="64" width="12" height="12" rx="3" fill="#F1F5F9" stroke="#CBD5E1"/>
+  <text x="778" y="74" font-size="11" fill="#475569">Plataforma / serviço externo</text>
+
+  <!-- markers -->
+  <defs>
+    <marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#64748B"/></marker>
+    <marker id="arrR" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#E11D2A"/></marker>
+    <marker id="arrS" markerWidth="9" markerHeight="9" refX="0" refY="3" orient="auto"><path d="M7,0 L0,3 L7,6 Z" fill="#64748B"/></marker>
+    <marker id="arrD" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#94A3B8"/></marker>
+  </defs>
+
+  <!-- ===== Utilizador ===== -->
+  <rect x="40" y="180" width="160" height="104" rx="12" fill="#F1F5F9" stroke="#CBD5E1"/>
+  <text x="120" y="222" font-size="26" text-anchor="middle">👤</text>
+  <text x="120" y="250" font-size="15" font-weight="700" text-anchor="middle" fill="#0F172A">Utilizador</text>
+  <text x="120" y="270" font-size="11" text-anchor="middle" fill="#64748B">Browser / Telemóvel (PWA)</text>
+
+  <!-- ===== Vercel / Frontend ===== -->
+  <rect x="270" y="170" width="210" height="124" rx="12" fill="#FDECEC" stroke="#E11D2A" stroke-width="1.5"/>
+  <rect x="284" y="184" width="62" height="18" rx="9" fill="#FFFFFF" stroke="#F3C9CC"/>
+  <text x="315" y="197" font-size="10" font-weight="700" text-anchor="middle" fill="#9B1C24">VERCEL</text>
+  <text x="375" y="232" font-size="16" font-weight="700" text-anchor="middle" fill="#0F172A">🌐 Frontend</text>
+  <text x="375" y="252" font-size="11.5" text-anchor="middle" fill="#475569">React · Vite · Tailwind</text>
+  <text x="375" y="276" font-size="10.5" text-anchor="middle" fill="#64748B" font-family="monospace">armazem-express.vercel.app</text>
+
+  <!-- ===== Render / Backend ===== -->
+  <rect x="545" y="150" width="290" height="172" rx="12" fill="#F1F5F9" stroke="#CBD5E1"/>
+  <rect x="559" y="164" width="64" height="18" rx="9" fill="#FFFFFF" stroke="#CBD5E1"/>
+  <text x="591" y="177" font-size="10" font-weight="700" text-anchor="middle" fill="#475569">RENDER</text>
+  <text x="800" y="178" font-size="13" font-weight="700" text-anchor="end" fill="#0F172A">⚙️ Backend</text>
+
+  <!-- API -->
+  <rect x="565" y="196" width="250" height="52" rx="9" fill="#FDECEC" stroke="#E11D2A" stroke-width="1.5"/>
+  <text x="690" y="219" font-size="13.5" font-weight="700" text-anchor="middle" fill="#0F172A">API REST</text>
+  <text x="690" y="237" font-size="11" text-anchor="middle" fill="#475569">Node · Express · JWT</text>
+
+  <!-- SQLite -->
+  <g>
+    <ellipse cx="690" cy="270" rx="95" ry="9" fill="#FDECEC" stroke="#E11D2A"/>
+    <path d="M595,270 v22 a95,9 0 0 0 190,0 v-22" fill="#FDECEC" stroke="#E11D2A" stroke-width="1.2"/>
+    <ellipse cx="690" cy="270" rx="95" ry="9" fill="#FFFFFF" stroke="#E11D2A"/>
+    <text x="690" y="290" font-size="12" font-weight="700" text-anchor="middle" fill="#0F172A">🗄️ Base de dados · SQLite</text>
+  </g>
+  <!-- API <-> SQLite -->
+  <line x1="690" y1="248" x2="690" y2="261" stroke="#64748B" stroke-width="1.4" marker-end="url(#arr)"/>
+
+  <!-- ===== Stripe ===== -->
+  <rect x="880" y="186" width="135" height="100" rx="12" fill="#F1F5F9" stroke="#CBD5E1"/>
+  <text x="947" y="226" font-size="24" text-anchor="middle">💳</text>
+  <text x="947" y="252" font-size="14" font-weight="700" text-anchor="middle" fill="#0F172A">Stripe</text>
+  <text x="947" y="270" font-size="10.5" text-anchor="middle" fill="#64748B">Pagamentos</text>
+
+  <!-- ===== GitHub ===== -->
+  <rect x="300" y="392" width="230" height="92" rx="12" fill="#F1F5F9" stroke="#CBD5E1"/>
+  <text x="415" y="428" font-size="22" text-anchor="middle">🐙</text>
+  <text x="415" y="452" font-size="14" font-weight="700" text-anchor="middle" fill="#0F172A">GitHub</text>
+  <text x="415" y="470" font-size="10.5" text-anchor="middle" fill="#64748B">Repositório (código-fonte)</text>
+
+  <!-- ===== Arrows ===== -->
+  <!-- Utilizador -> Vercel -->
+  <line x1="200" y1="232" x2="270" y2="232" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr)"/>
+  <rect x="206" y="208" width="58" height="16" rx="4" fill="#FFFFFF"/>
+  <text x="235" y="220" font-size="10.5" text-anchor="middle" fill="#475569">abre o site</text>
+
+  <!-- Vercel -> Render (API) -->
+  <line x1="480" y1="224" x2="545" y2="220" stroke="#E11D2A" stroke-width="1.8" marker-end="url(#arrR)"/>
+  <rect x="478" y="196" width="72" height="16" rx="4" fill="#FFFFFF"/>
+  <text x="514" y="208" font-size="10.5" text-anchor="middle" fill="#9B1C24" font-weight="600">pedidos JSON</text>
+
+  <!-- Render <-> Stripe -->
+  <line x1="835" y1="236" x2="880" y2="236" stroke="#64748B" stroke-width="1.6" marker-end="url(#arr)" marker-start="url(#arrS)"/>
+  <rect x="828" y="210" width="60" height="16" rx="4" fill="#FFFFFF"/>
+  <text x="858" y="222" font-size="9.5" text-anchor="middle" fill="#475569">checkout</text>
+  <rect x="828" y="246" width="60" height="16" rx="4" fill="#FFFFFF"/>
+  <text x="858" y="258" font-size="9.5" text-anchor="middle" fill="#475569">webhook</text>
+
+  <!-- GitHub -> Vercel (CI/CD) -->
+  <path d="M380,392 C360,350 350,320 360,298" fill="none" stroke="#94A3B8" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrD)"/>
+  <!-- GitHub -> Render (CI/CD) -->
+  <path d="M500,400 C600,370 640,350 660,326" fill="none" stroke="#94A3B8" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arrD)"/>
+  <rect x="300" y="360" width="232" height="18" rx="4" fill="#FFFFFF"/>
+  <text x="416" y="373" font-size="11" text-anchor="middle" fill="#64748B" font-weight="600">git push → deploy automático (CI/CD)</text>
+</svg>
