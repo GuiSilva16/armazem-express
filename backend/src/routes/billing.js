@@ -235,6 +235,59 @@ router.post('/cancel', authenticate, async (req, res) => {
 });
 
 /**
+ * GET /api/billing/invoices
+ * Lista as faturas do cliente Stripe da empresa (apenas admin).
+ */
+router.get('/invoices', authenticate, async (req, res) => {
+  if (!ensureStripe(res)) return;
+  try {
+    const company = db.prepare('SELECT stripe_customer_id FROM companies WHERE id = ?').get(req.user.company_id);
+    if (!company?.stripe_customer_id) return res.json({ invoices: [] });
+
+    const list = await stripe.invoices.list({ customer: company.stripe_customer_id, limit: 24 });
+    const invoices = list.data.map((inv) => ({
+      id: inv.id,
+      number: inv.number,
+      status: inv.status,
+      amount: (inv.amount_paid || inv.amount_due || 0) / 100,
+      currency: inv.currency,
+      created: inv.created * 1000,
+      pdf: inv.invoice_pdf,
+      url: inv.hosted_invoice_url
+    }));
+    res.json({ invoices });
+  } catch (err) {
+    console.error('Erro a obter faturas:', err);
+    res.status(500).json({ error: 'Erro ao obter faturas' });
+  }
+});
+
+/**
+ * POST /api/billing/portal
+ * Cria sessão do portal de faturação do Stripe (gerir cartão, faturas, cancelar).
+ */
+router.post('/portal', authenticate, async (req, res) => {
+  if (!ensureStripe(res)) return;
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Apenas administradores' });
+    }
+    const company = db.prepare('SELECT stripe_customer_id FROM companies WHERE id = ?').get(req.user.company_id);
+    if (!company?.stripe_customer_id) {
+      return res.status(400).json({ error: 'Esta empresa ainda não tem cliente Stripe associado.' });
+    }
+    const session = await stripe.billingPortal.sessions.create({
+      customer: company.stripe_customer_id,
+      return_url: `${FRONTEND_URL}/app/settings`
+    });
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('Erro no portal de faturação:', err);
+    res.status(500).json({ error: 'Não foi possível abrir o portal. Verifique a configuração do portal no Stripe.' });
+  }
+});
+
+/**
  * POST /api/billing/webhook
  * Recebe eventos da Stripe. Tem de ser registado com express.raw() no server.js.
  */

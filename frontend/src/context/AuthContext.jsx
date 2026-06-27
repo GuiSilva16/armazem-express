@@ -27,6 +27,7 @@ const clearToken = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [plan, setPlan] = useState(null);
+  const [company, setCompany] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,6 +45,7 @@ export const AuthProvider = ({ children }) => {
       const { data } = await api.get('/auth/me');
       setUser(data.user);
       setPlan(data.plan);
+      setCompany(data.company || null);
       return data;
     } catch (error) {
       logout();
@@ -65,10 +67,11 @@ export const AuthProvider = ({ children }) => {
     delete api.defaults.headers.common['Authorization'];
     setUser(null);
     setPlan(null);
+    setCompany(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, plan, loading, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, plan, company, loading, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

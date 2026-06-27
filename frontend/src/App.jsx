@@ -19,6 +19,7 @@ import QrScanner from './pages/QrScanner';
 import Team from './pages/Team';
 import Settings from './pages/Settings';
 import Activity from './pages/Activity';
+import Reports from './pages/Reports';
 import PaymentSuccess from './pages/PaymentSuccess';
 import PaymentCancel from './pages/PaymentCancel';
 import PublicTracking from './pages/PublicTracking';
@@ -63,6 +64,7 @@ export default function App() {
         <Route path="orders" element={<Orders />} />
         <Route path="orders/new" element={<SendOrder />} />
         <Route path="orders/:id" element={<OrderDetail />} />
+        <Route path="reports" element={<Reports />} />
         <Route path="tracking" element={<Tracking />} />
         <Route path="scanner" element={<FeatureGate feature="qr_scanner"><QrScanner /></FeatureGate>} />
         <Route path="team" element={<Team />} />

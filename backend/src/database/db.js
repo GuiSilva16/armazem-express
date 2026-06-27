@@ -172,6 +172,12 @@ const initDb = () => {
   if (!companyCols.some((c) => c.name === 'stripe_subscription_id')) {
     db.exec(`ALTER TABLE companies ADD COLUMN stripe_subscription_id TEXT`);
   }
+  // Migração: dados de perfil da empresa (aparecem nos relatórios/PDFs)
+  for (const col of ['address', 'postal_code', 'city', 'phone', 'vat']) {
+    if (!companyCols.some((c) => c.name === col)) {
+      db.exec(`ALTER TABLE companies ADD COLUMN ${col} TEXT`);
+    }
+  }
 
   // Migração: stripe_price_id em plans
   const planCols = db.prepare(`PRAGMA table_info(plans)`).all();

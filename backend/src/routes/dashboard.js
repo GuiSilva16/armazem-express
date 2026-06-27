@@ -260,6 +260,27 @@ router.get('/', authenticate, (req, res) => {
       };
     });
 
+    // Comparação com o período anterior (mesma duração)
+    const ordersNow = db.prepare(
+      `SELECT COUNT(*) c, COALESCE(SUM(total_value),0) v FROM orders WHERE company_id = ? AND created_at >= date('now', ?)`
+    ).get(companyId, `-${days} days`);
+    const ordersPrev = db.prepare(
+      `SELECT COUNT(*) c, COALESCE(SUM(total_value),0) v FROM orders WHERE company_id = ? AND created_at >= date('now', ?) AND created_at < date('now', ?)`
+    ).get(companyId, `-${days * 2} days`, `-${days} days`);
+    const movNow = db.prepare(
+      `SELECT COALESCE(SUM(CASE WHEN type IN ('remove','ship') THEN quantity ELSE 0 END),0) removed FROM stock_movements WHERE company_id = ? AND created_at >= date('now', ?)`
+    ).get(companyId, `-${days} days`);
+    const movPrev = db.prepare(
+      `SELECT COALESCE(SUM(CASE WHEN type IN ('remove','ship') THEN quantity ELSE 0 END),0) removed FROM stock_movements WHERE company_id = ? AND created_at >= date('now', ?) AND created_at < date('now', ?)`
+    ).get(companyId, `-${days * 2} days`, `-${days} days`);
+
+    const pct = (now, prev) => (prev > 0 ? Math.round(((now - prev) / prev) * 100) : (now > 0 ? 100 : 0));
+    const comparison = {
+      orders: { now: ordersNow.c, prev: ordersPrev.c, pct: pct(ordersNow.c, ordersPrev.c) },
+      revenue: { now: ordersNow.v, prev: ordersPrev.v, pct: pct(ordersNow.v, ordersPrev.v) },
+      outgoing: { now: movNow.removed, prev: movPrev.removed, pct: pct(movNow.removed, movPrev.removed) }
+    };
+
     res.json({
       stockStats,
       orderStats,
@@ -270,6 +291,7 @@ router.get('/', authenticate, (req, res) => {
       movementsByDay,
       byCategory,
       reorderSuggestions,
+      comparison,
       days
     });
   } catch (error) {

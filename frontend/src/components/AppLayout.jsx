@@ -21,12 +21,14 @@ import {
   Trash2,
   Search as SearchIcon,
   Activity as ActivityIcon,
-  Lock
+  Lock,
+  BarChart3
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Logo from './Logo';
 import CommandPalette from './CommandPalette';
 import ShortcutsHelp from './ShortcutsHelp';
+import Onboarding from './Onboarding';
 import { useAuth } from '../context/AuthContext';
 import { planHasFeature } from '../lib/planFeatures';
 import { useTheme } from '../context/ThemeContext';
@@ -39,6 +41,7 @@ const navItems = [
   { to: '/app/stock/add', icon: Plus, label: 'Adicionar' },
   { to: '/app/orders', icon: Truck, label: 'Encomendas' },
   { to: '/app/orders/new', icon: Send, label: 'Enviar' },
+  { to: '/app/reports', icon: BarChart3, label: 'Relatórios' },
   { to: '/app/tracking', icon: Search, label: 'Tracking' },
   { to: '/app/scanner', icon: QrCode, label: 'QR Scanner', feature: 'qr_scanner' }
 ];
@@ -498,6 +501,7 @@ export default function AppLayout() {
 
       <CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} />
       <ShortcutsHelp open={helpOpen} onClose={() => setHelpOpen(false)} />
+      <Onboarding />
     </div>
   );
 }

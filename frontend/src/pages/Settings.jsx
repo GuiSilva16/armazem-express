@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, CreditCard, Palette, Package, Users, CheckCircle2, Sun, Moon, Sparkles, ArrowUpCircle, ArrowDownCircle, Check } from 'lucide-react';
+import { Building2, CreditCard, Palette, Package, Users, CheckCircle2, Sun, Moon, Sparkles, ArrowUpCircle, ArrowDownCircle, Check, FileText, ExternalLink, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PageHeader, LoadingSpinner, Modal } from '../components/ui';
 import api from '../lib/api';
@@ -9,18 +9,56 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
 export default function Settings() {
-  const { user, plan, refreshUser } = useAuth();
+  const { user, plan, company, refreshUser } = useAuth();
   const { theme, setTheme } = useTheme();
   const [dashData, setDashData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [plans, setPlans] = useState([]);
   const [changing, setChanging] = useState(false);
   const [confirmPlan, setConfirmPlan] = useState(null);
+  const [companyForm, setCompanyForm] = useState({ address: '', postal_code: '', city: '', phone: '', vat: '' });
+  const [savingCompany, setSavingCompany] = useState(false);
+  const [invoices, setInvoices] = useState([]);
+  const [portalLoading, setPortalLoading] = useState(false);
 
   useEffect(() => {
     api.get('/dashboard').then(({ data }) => setDashData(data)).finally(() => setLoading(false));
     api.get('/auth/plans').then(({ data }) => setPlans(data)).catch(() => {});
-  }, []);
+    if (user?.role === 'admin') {
+      api.get('/billing/invoices').then(({ data }) => setInvoices(data.invoices || [])).catch(() => {});
+    }
+  }, [user?.role]);
+
+  const openPortal = async () => {
+    setPortalLoading(true);
+    try {
+      const { data } = await api.post('/billing/portal');
+      window.location.href = data.url;
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Não foi possível abrir o portal de faturação');
+      setPortalLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (company) setCompanyForm({
+      address: company.address || '', postal_code: company.postal_code || '',
+      city: company.city || '', phone: company.phone || '', vat: company.vat || ''
+    });
+  }, [company]);
+
+  const saveCompany = async () => {
+    setSavingCompany(true);
+    try {
+      await api.put('/auth/company', companyForm);
+      await refreshUser();
+      toast.success('Dados da empresa guardados');
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Erro ao guardar');
+    } finally {
+      setSavingCompany(false);
+    }
+  };
 
   const handleChangePlan = async () => {
     if (!confirmPlan) return;
@@ -139,6 +177,107 @@ export default function Settings() {
             </div>
           </dl>
         </motion.div>
+
+        {/* Dados da empresa (admin) — aparecem nos relatórios/PDFs */}
+        {user?.role === 'admin' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+            className="card p-6 lg:col-span-3">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="h-10 w-10 rounded-xl bg-brand-red-500 flex items-center justify-center text-white">
+                <Building2 size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold">Dados da Empresa</h3>
+                <p className="text-xs text-neutral-500">Morada, contacto e NIF — aparecem nos relatórios em PDF.</p>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3 mt-4">
+              <div className="sm:col-span-2">
+                <label className="label">Morada</label>
+                <input className="input" value={companyForm.address} placeholder="Rua, número"
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, address: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Código postal</label>
+                <input className="input" value={companyForm.postal_code} placeholder="0000-000"
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, postal_code: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Cidade</label>
+                <input className="input" value={companyForm.city} placeholder="Lisboa"
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, city: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">Telefone</label>
+                <input className="input" value={companyForm.phone} placeholder="+351 ..."
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, phone: e.target.value }))} />
+              </div>
+              <div>
+                <label className="label">NIF</label>
+                <input className="input" value={companyForm.vat} placeholder="500000000"
+                  onChange={(e) => setCompanyForm((f) => ({ ...f, vat: e.target.value }))} />
+              </div>
+            </div>
+            <div className="flex justify-end mt-4">
+              <button onClick={saveCompany} disabled={savingCompany} className="btn-primary !py-2 !px-5">
+                {savingCompany ? 'A guardar...' : 'Guardar'}
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Faturação (admin) */}
+        {user?.role === 'admin' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}
+            className="card p-6 lg:col-span-3">
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="h-10 w-10 rounded-xl bg-brand-red-500 flex items-center justify-center text-white">
+                  <CreditCard size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold">Faturação</h3>
+                  <p className="text-xs text-neutral-500">Faturas e gestão da subscrição via Stripe.</p>
+                </div>
+              </div>
+              <button onClick={openPortal} disabled={portalLoading}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full border-2 border-neutral-200 dark:border-neutral-700 hover:border-brand-red-500 hover:text-brand-red-500 font-semibold transition text-sm">
+                <ExternalLink size={16} /> {portalLoading ? 'A abrir...' : 'Gerir faturação'}
+              </button>
+            </div>
+
+            {invoices.length === 0 ? (
+              <div className="text-sm text-neutral-500 py-4 text-center">
+                Ainda não há faturas. As faturas das subscrições Stripe aparecerão aqui.
+              </div>
+            ) : (
+              <div className="divide-y divide-neutral-100 dark:divide-neutral-800">
+                {invoices.map((inv) => (
+                  <div key={inv.id} className="flex items-center justify-between gap-3 py-2.5">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <FileText size={18} className="text-neutral-400 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <div className="font-semibold text-sm truncate">{inv.number || inv.id}</div>
+                        <div className="text-xs text-neutral-500">{formatDate(inv.created)}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className={`chip ${inv.status === 'paid' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-brand-yellow-100 text-brand-yellow-700 dark:bg-brand-yellow-900/30 dark:text-brand-yellow-300'}`}>
+                        {inv.status === 'paid' ? 'Paga' : inv.status}
+                      </span>
+                      <span className="font-bold text-sm">{formatCurrency(inv.amount)}</span>
+                      {inv.pdf && (
+                        <a href={inv.pdf} target="_blank" rel="noopener noreferrer" className="p-2 hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded-lg" title="Descarregar PDF">
+                          <Download size={16} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        )}
 
         {/* Aparência */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}

@@ -12,9 +12,13 @@ import { useAuth } from '../context/AuthContext';
  *  - breakdown: [{ label, value, color }] (barra de distribuição visual)
  */
 export default function PrintReport({ title, subtitle, columns, rows, summary = [], breakdown = [] }) {
-  const { user } = useAuth();
+  const { user, company } = useAuth();
   const now = new Date();
   const breakdownTotal = breakdown.reduce((s, b) => s + b.value, 0) || 1;
+
+  const addressLine = [company?.address, [company?.postal_code, company?.city].filter(Boolean).join(' ')]
+    .filter(Boolean).join(', ');
+  const contactLine = [company?.phone, company?.vat ? `NIF ${company.vat}` : ''].filter(Boolean).join(' · ');
 
   return (
     <div className="print-only text-black text-[12px] leading-snug">
@@ -24,9 +28,11 @@ export default function PrintReport({ title, subtitle, columns, rows, summary = 
           <img src="/logo.png" alt="Armazém Express" className="w-14 h-14 rounded-lg" />
           <div>
             <div className="text-[22px] font-bold leading-tight">{title}</div>
-            <div className="text-sm text-black/70">
-              {user?.companyName}
-              {subtitle ? ` · ${subtitle}` : ''} · {rows.length} {rows.length === 1 ? 'registo' : 'registos'}
+            <div className="text-sm text-black/70 font-semibold">{user?.companyName}</div>
+            {addressLine && <div className="text-[11px] text-black/60">{addressLine}</div>}
+            {contactLine && <div className="text-[11px] text-black/60">{contactLine}</div>}
+            <div className="text-[11px] text-black/60">
+              {subtitle ? `${subtitle} · ` : ''}{rows.length} {rows.length === 1 ? 'registo' : 'registos'}
             </div>
           </div>
         </div>

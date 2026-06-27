@@ -50,7 +50,7 @@ export default function Dashboard() {
   if (loading) return <LoadingSpinner size="lg" />;
   if (!data) return null;
 
-  const { stockStats, orderStats, lowStockProducts, recentOrders, movementsByDay, byCategory, reorderSuggestions = [], topByValue = [] } = data;
+  const { stockStats, orderStats, lowStockProducts, recentOrders, movementsByDay, byCategory, reorderSuggestions = [], topByValue = [], comparison } = data;
 
   // Saudação consoante a hora de Portugal (Europe/Lisbon), independente do fuso do dispositivo
   const ptHour = parseInt(
@@ -360,6 +360,26 @@ export default function Dashboard() {
             <div>
               <h3 className="font-bold">Movimento de Stock</h3>
               <p className="text-xs text-neutral-500">Últimos {days} dias</p>
+              {comparison && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[11px]">
+                  {[
+                    { label: 'Encomendas', d: comparison.orders },
+                    { label: 'Saídas', d: comparison.outgoing },
+                    { label: 'Receita', d: comparison.revenue }
+                  ].map(({ label, d }) => {
+                    const up = d.pct >= 0;
+                    return (
+                      <span key={label} className="inline-flex items-center gap-1 text-neutral-500">
+                        {label}
+                        <span className={`inline-flex items-center font-bold ${up ? 'text-green-500' : 'text-brand-red-500'}`}>
+                          {up ? '↑' : '↓'} {Math.abs(d.pct)}%
+                        </span>
+                      </span>
+                    );
+                  })}
+                  <span className="text-neutral-400">vs período anterior</span>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-3 text-xs">
               <div className="flex items-center gap-1.5">

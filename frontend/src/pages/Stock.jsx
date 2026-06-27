@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Search, Filter, Package, Trash2, Eye, Edit3, MapPin, Download, Printer, ClipboardList, QrCode, Upload, FileUp, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Filter, Package, Trash2, Eye, Edit3, MapPin, Download, Printer, ClipboardList, QrCode, Upload, FileUp, CheckCircle2, AlertTriangle, Star } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PageHeader, StatusBadge, LoadingSpinner, EmptyState, Modal } from '../components/ui';
 import PrintReport from '../components/PrintReport';
@@ -28,6 +28,19 @@ export default function Stock() {
   const [importText, setImportText] = useState('');
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
+  const [pinned, setPinned] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('armazem_pinned') || '[]')); } catch { return new Set(); }
+  });
+
+  const togglePin = (id, e) => {
+    e?.stopPropagation();
+    setPinned((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      localStorage.setItem('armazem_pinned', JSON.stringify([...next]));
+      return next;
+    });
+  };
   const navigate = useNavigate();
   const { user, plan } = useAuth();
   const canExport = planHasFeature(plan?.name, 'csv_export');
@@ -111,8 +124,9 @@ export default function Stock() {
     }
   };
 
-  // Vista filtrada por datas (created_at)
+  // Vista filtrada por datas (created_at), com favoritos no topo
   const view = filterByRange(products, 'created_at', dateFrom, dateTo);
+  const sortedView = [...view].sort((a, b) => (pinned.has(b.id) ? 1 : 0) - (pinned.has(a.id) ? 1 : 0));
 
   const copySummary = () => {
     const totalValue = view.reduce((s, p) => s + p.quantity * p.price, 0);
@@ -331,7 +345,7 @@ export default function Stock() {
         <>
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
-            {view.map((p, i) => {
+            {sortedView.map((p, i) => {
               const s = getStockStatus(p);
               return (
                 <motion.div
@@ -343,9 +357,14 @@ export default function Stock() {
                   className="card p-4 cursor-pointer active:scale-[0.98] transition"
                 >
                   <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold truncate">{p.name}</div>
-                      <div className="text-xs text-neutral-500 font-mono truncate">{p.sku}</div>
+                    <div className="flex-1 min-w-0 flex items-center gap-1.5">
+                      <button onClick={(e) => togglePin(p.id, e)} className="flex-shrink-0">
+                        <Star size={15} className={pinned.has(p.id) ? 'text-brand-yellow-500 fill-brand-yellow-500' : 'text-neutral-300 dark:text-neutral-600'} />
+                      </button>
+                      <div className="min-w-0">
+                        <div className="font-bold truncate">{p.name}</div>
+                        <div className="text-xs text-neutral-500 font-mono truncate">{p.sku}</div>
+                      </div>
                     </div>
                     <StatusBadge status={s.key} />
                   </div>
@@ -384,7 +403,7 @@ export default function Stock() {
                   </tr>
                 </thead>
                 <tbody>
-                  {view.map((p, i) => {
+                  {sortedView.map((p, i) => {
                     const s = getStockStatus(p);
                     return (
                       <motion.tr
@@ -396,8 +415,15 @@ export default function Stock() {
                         onClick={() => navigate(`/app/stock/${p.id}`)}
                       >
                         <td>
-                          <div className="font-semibold">{p.name}</div>
-                          <div className="text-xs text-neutral-500 font-mono">{p.sku}</div>
+                          <div className="flex items-center gap-2">
+                            <button onClick={(e) => togglePin(p.id, e)} title={pinned.has(p.id) ? 'Desafixar' : 'Fixar no topo'} className="flex-shrink-0">
+                              <Star size={15} className={pinned.has(p.id) ? 'text-brand-yellow-500 fill-brand-yellow-500' : 'text-neutral-300 dark:text-neutral-600 hover:text-brand-yellow-500'} />
+                            </button>
+                            <div className="min-w-0">
+                              <div className="font-semibold">{p.name}</div>
+                              <div className="text-xs text-neutral-500 font-mono">{p.sku}</div>
+                            </div>
+                          </div>
                         </td>
                         <td>{p.category}</td>
                         <td>
