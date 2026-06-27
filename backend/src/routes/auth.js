@@ -219,7 +219,7 @@ router.post('/login', (req, res) => {
 router.get('/me', authenticate, (req, res) => {
   const plan = db.prepare('SELECT * FROM plans WHERE id = ?').get(req.user.plan_id);
   const company = db
-    .prepare('SELECT id, name, created_at, subscription_status, address, postal_code, city, phone, vat, email FROM companies WHERE id = ?')
+    .prepare('SELECT id, name, created_at, subscription_status, address, postal_code, city, phone, vat, logo, email FROM companies WHERE id = ?')
     .get(req.user.company_id);
   const userCount = db
     .prepare('SELECT COUNT(*) as c FROM users WHERE company_id = ?')
@@ -243,7 +243,8 @@ router.get('/me', authenticate, (req, res) => {
       postal_code: company?.postal_code || '',
       city: company?.city || '',
       phone: company?.phone || '',
-      vat: company?.vat || ''
+      vat: company?.vat || '',
+      logo: company?.logo || ''
     },
     plan: plan ? { ...plan, features: JSON.parse(plan.features || '[]') } : null
   });
@@ -258,17 +259,36 @@ router.put('/company', authenticate, (req, res) => {
     if (req.user.role !== 'admin') {
       return res.status(403).json({ error: 'Apenas administradores podem editar a empresa' });
     }
-    const { address, postal_code, city, phone, vat } = req.body;
-    db.prepare(
-      'UPDATE companies SET address = ?, postal_code = ?, city = ?, phone = ?, vat = ? WHERE id = ?'
-    ).run(
-      (address || '').trim(),
-      (postal_code || '').trim(),
-      (city || '').trim(),
-      (phone || '').trim(),
-      (vat || '').trim(),
-      req.user.company_id
-    );
+    const { address, postal_code, city, phone, vat, logo } = req.body;
+
+    // Logo: data URL de imagem (já redimensionada no cliente). '' = remover.
+    let logoValue;
+    if (logo !== undefined) {
+      const l = (logo || '').trim();
+      if (l && !/^data:image\/(png|jpeg|jpg|webp);base64,/.test(l)) {
+        return res.status(400).json({ error: 'Formato de logótipo inválido' });
+      }
+      if (l.length > 800000) {
+        return res.status(400).json({ error: 'Logótipo demasiado grande (máx. ~500KB)' });
+      }
+      logoValue = l;
+    }
+
+    if (logoValue !== undefined) {
+      db.prepare(
+        'UPDATE companies SET address = ?, postal_code = ?, city = ?, phone = ?, vat = ?, logo = ? WHERE id = ?'
+      ).run(
+        (address || '').trim(), (postal_code || '').trim(), (city || '').trim(),
+        (phone || '').trim(), (vat || '').trim(), logoValue, req.user.company_id
+      );
+    } else {
+      db.prepare(
+        'UPDATE companies SET address = ?, postal_code = ?, city = ?, phone = ?, vat = ? WHERE id = ?'
+      ).run(
+        (address || '').trim(), (postal_code || '').trim(), (city || '').trim(),
+        (phone || '').trim(), (vat || '').trim(), req.user.company_id
+      );
+    }
     res.json({ success: true });
   } catch (error) {
     console.error('Erro ao atualizar empresa:', error);

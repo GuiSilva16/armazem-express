@@ -127,18 +127,35 @@ export const PageHeader = ({ title, subtitle, actions }) => (
 );
 
 export const EmptyState = ({ icon: Icon, title, description, action }) => (
-  <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+  <motion.div
+    initial={{ opacity: 0, y: 12 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.4, ease: 'easeOut' }}
+    className="flex flex-col items-center justify-center py-16 px-4 text-center"
+  >
     {Icon && (
-      <div className="h-16 w-16 rounded-2xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center mb-4">
-        <Icon size={32} className="text-neutral-400" />
-      </div>
+      <motion.div
+        animate={{ y: [0, -8, 0] }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+        className="relative h-16 w-16 mb-4"
+      >
+        {/* halo pulsante */}
+        <motion.span
+          className="absolute inset-0 rounded-2xl bg-brand-red-500/10"
+          animate={{ scale: [1, 1.15, 1], opacity: [0.6, 0.2, 0.6] }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        <div className="relative h-16 w-16 rounded-2xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center">
+          <Icon size={32} className="text-neutral-400" />
+        </div>
+      </motion.div>
     )}
     <h3 className="text-lg font-bold mb-1">{title}</h3>
     {description && (
       <p className="text-sm text-neutral-500 max-w-md mb-4">{description}</p>
     )}
     {action}
-  </div>
+  </motion.div>
 );
 
 export const LoadingSpinner = ({ size = 'md' }) => {

@@ -16,7 +16,7 @@ export default function Settings() {
   const [plans, setPlans] = useState([]);
   const [changing, setChanging] = useState(false);
   const [confirmPlan, setConfirmPlan] = useState(null);
-  const [companyForm, setCompanyForm] = useState({ address: '', postal_code: '', city: '', phone: '', vat: '' });
+  const [companyForm, setCompanyForm] = useState({ address: '', postal_code: '', city: '', phone: '', vat: '', logo: '' });
   const [savingCompany, setSavingCompany] = useState(false);
   const [invoices, setInvoices] = useState([]);
   const [portalLoading, setPortalLoading] = useState(false);
@@ -43,9 +43,34 @@ export default function Settings() {
   useEffect(() => {
     if (company) setCompanyForm({
       address: company.address || '', postal_code: company.postal_code || '',
-      city: company.city || '', phone: company.phone || '', vat: company.vat || ''
+      city: company.city || '', phone: company.phone || '', vat: company.vat || '',
+      logo: company.logo || ''
     });
   }, [company]);
+
+  // Redimensiona a imagem no cliente (máx. 256px) e guarda como data URL PNG.
+  const handleLogoFile = (file) => {
+    if (!file) return;
+    if (!/^image\/(png|jpe?g|webp)$/.test(file.type)) {
+      toast.error('Use uma imagem PNG, JPG ou WEBP');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 256;
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        setCompanyForm((f) => ({ ...f, logo: canvas.toDataURL('image/png') }));
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const saveCompany = async () => {
     setSavingCompany(true);
@@ -191,6 +216,30 @@ export default function Settings() {
                 <p className="text-xs text-neutral-500">Morada, contacto e NIF — aparecem nos relatórios em PDF.</p>
               </div>
             </div>
+            {/* Logótipo */}
+            <div className="flex items-center gap-4 mt-5 mb-1">
+              <div className="h-16 w-16 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+                {companyForm.logo
+                  ? <img src={companyForm.logo} alt="Logótipo" className="h-full w-full object-contain" />
+                  : <Building2 size={24} className="text-neutral-300" />}
+              </div>
+              <div>
+                <div className="text-sm font-semibold mb-1">Logótipo da empresa</div>
+                <p className="text-xs text-neutral-500 mb-2">Aparece no topo dos relatórios PDF. PNG/JPG, será reduzido para 256px.</p>
+                <div className="flex items-center gap-2">
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-neutral-200 dark:border-neutral-700 hover:border-brand-red-500 cursor-pointer text-xs font-semibold transition">
+                    Carregar imagem
+                    <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden"
+                      onChange={(e) => handleLogoFile(e.target.files?.[0])} />
+                  </label>
+                  {companyForm.logo && (
+                    <button type="button" onClick={() => setCompanyForm((f) => ({ ...f, logo: '' }))}
+                      className="text-xs text-neutral-500 hover:text-brand-red-500 font-semibold">Remover</button>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="grid sm:grid-cols-2 gap-3 mt-4">
               <div className="sm:col-span-2">
                 <label className="label">Morada</label>

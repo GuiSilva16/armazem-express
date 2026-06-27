@@ -173,7 +173,7 @@ const initDb = () => {
     db.exec(`ALTER TABLE companies ADD COLUMN stripe_subscription_id TEXT`);
   }
   // Migração: dados de perfil da empresa (aparecem nos relatórios/PDFs)
-  for (const col of ['address', 'postal_code', 'city', 'phone', 'vat']) {
+  for (const col of ['address', 'postal_code', 'city', 'phone', 'vat', 'logo']) {
     if (!companyCols.some((c) => c.name === col)) {
       db.exec(`ALTER TABLE companies ADD COLUMN ${col} TEXT`);
     }

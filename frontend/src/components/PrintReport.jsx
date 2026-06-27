@@ -25,7 +25,7 @@ export default function PrintReport({ title, subtitle, columns, rows, summary = 
       {/* Cabeçalho com logo */}
       <div className="flex items-center justify-between border-b-2 border-black pb-3 mb-4">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Armazém Express" className="w-14 h-14 rounded-lg" />
+          <img src={company?.logo || '/logo.png'} alt={user?.companyName || 'Armazém Express'} className="w-14 h-14 rounded-lg object-contain" />
           <div>
             <div className="text-[22px] font-bold leading-tight">{title}</div>
             <div className="text-sm text-black/70 font-semibold">{user?.companyName}</div>
