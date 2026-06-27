@@ -56,7 +56,7 @@ const adminResult = db
 
 // Criar funcionário demo
 const empHash = bcrypt.hashSync('Trabalhador@2025', 10);
-db.prepare(
+const empResult = db.prepare(
   `INSERT INTO users (company_id, email, password_hash, name, role)
    VALUES (?, 'funcionario@armazem-express.pt', ?, 'João Funcionário', 'employee')`
 ).run(companyId, empHash);
@@ -91,9 +91,13 @@ const insertProduct = db.prepare(
 );
 
 const insertMovement = db.prepare(
-  `INSERT INTO stock_movements (company_id, product_id, type, quantity, reason, user_id)
-   VALUES (?, ?, 'add', ?, 'Stock inicial', ?)`
+  `INSERT INTO stock_movements (company_id, product_id, type, quantity, reason, user_id, created_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?)`
 );
+
+// O stock inicial fica datado há ~90 dias para não poluir os gráficos recentes
+const initialStockDate = new Date();
+initialStockDate.setDate(initialStockDate.getDate() - 90);
 
 const productIds = [];
 for (const p of sampleProducts) {
@@ -117,8 +121,53 @@ for (const p of sampleProducts) {
     generateQRCode(pid, sku),
     pid
   );
-  insertMovement.run(companyId, pid, p.quantity, adminResult.lastInsertRowid);
+  insertMovement.run(companyId, pid, 'add', p.quantity, 'Stock inicial', adminResult.lastInsertRowid, initialStockDate.toISOString());
   productIds.push(pid);
+}
+
+// ── Histórico de movimentos dos últimos 35 dias ───────────────────────────────
+// Gera entradas (reposições) e saídas (vendas/expedições) distribuídas pelos dias,
+// para que os gráficos, a comparação de períodos e a previsão de rutura tenham dados.
+const userIds = [adminResult.lastInsertRowid, empResult.lastInsertRowid];
+const reasonsOut = ['Venda em loja', 'Expedição de encomenda', 'Saída para cliente', 'Ajuste de inventário'];
+const reasonsIn = ['Reposição de stock', 'Entrega de fornecedor', 'Receção de mercadoria'];
+const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
+const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+
+const DAYS_HISTORY = 35;
+let movementCount = 0;
+for (let d = DAYS_HISTORY; d >= 1; d--) {
+  // Fim-de-semana com menos atividade
+  const dayDate = new Date();
+  dayDate.setDate(dayDate.getDate() - d);
+  const weekday = dayDate.getDay();
+  const isWeekend = weekday === 0 || weekday === 6;
+
+  // Saídas (vendas/expedições): a maior parte da atividade
+  const outCount = isWeekend ? rand(0, 2) : rand(2, 6);
+  for (let i = 0; i < outCount; i++) {
+    const pid = pick(productIds);
+    const ts = new Date(dayDate);
+    ts.setHours(rand(8, 19), rand(0, 59), 0, 0);
+    insertMovement.run(
+      companyId, pid, Math.random() < 0.5 ? 'ship' : 'remove',
+      rand(1, 8), pick(reasonsOut), pick(userIds), ts.toISOString()
+    );
+    movementCount++;
+  }
+
+  // Entradas (reposições): menos frequentes
+  const inCount = isWeekend ? 0 : (Math.random() < 0.5 ? 1 : 0);
+  for (let i = 0; i < inCount; i++) {
+    const pid = pick(productIds);
+    const ts = new Date(dayDate);
+    ts.setHours(rand(8, 19), rand(0, 59), 0, 0);
+    insertMovement.run(
+      companyId, pid, 'add',
+      rand(10, 40), pick(reasonsIn), pick(userIds), ts.toISOString()
+    );
+    movementCount++;
+  }
 }
 
 // Encomendas de exemplo
@@ -323,6 +372,7 @@ console.log(`   • 2 Utilizadores (1 admin + 1 funcionário)`);
 console.log(`   • ${sampleProducts.length} Produtos`);
 console.log(`   • ${sampleOrders.length} Encomendas`);
 console.log(`   • ${categories.length} Categorias`);
+console.log(`   • ${movementCount} Movimentos de stock (últimos ${DAYS_HISTORY} dias)`);
 console.log('');
 
 process.exit(0);

@@ -39,14 +39,15 @@ export default function Onboarding() {
             onClick={close}
             className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm"
           />
+          <div className="fixed inset-0 z-[121] flex items-center justify-center p-4 overflow-y-auto">
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ type: 'spring', damping: 26, stiffness: 280 }}
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[121] w-[calc(100%-2rem)] max-w-lg"
+            className="w-full max-w-lg my-auto"
           >
-            <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-2xl overflow-hidden">
+            <div className="bg-white dark:bg-neutral-900 rounded-3xl border border-neutral-200 dark:border-neutral-800 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
               <div className="relative bg-gradient-to-br from-brand-red-500 to-brand-red-700 p-6 text-white">
                 <button onClick={close} aria-label="Fechar" className="absolute top-4 right-4 h-8 w-8 flex items-center justify-center rounded-full bg-white/15 hover:bg-white/25 transition">
                   <X size={16} />
@@ -89,6 +90,7 @@ export default function Onboarding() {
               </div>
             </div>
           </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>
