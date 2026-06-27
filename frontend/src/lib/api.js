@@ -1,8 +1,10 @@
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
+// Em desenvolvimento usa o proxy do Vite (/api → localhost:4000).
+// Em produção (Vercel) define-se VITE_API_URL = https://<backend>.onrender.com/api
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 15000
 });
 

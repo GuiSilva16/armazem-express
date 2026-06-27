@@ -8,7 +8,10 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const dbPath = path.resolve(__dirname, '../../database.sqlite');
+// Em produção pode apontar-se DB_PATH para um disco persistente (ex.: Render Disk).
+const dbPath = process.env.DB_PATH
+  ? path.resolve(process.env.DB_PATH)
+  : path.resolve(__dirname, '../../database.sqlite');
 const db = new Database(dbPath);
 
 db.pragma('journal_mode = WAL');

@@ -1,0 +1,22 @@
+# Blueprint do Render para o backend do Armazém Express.
+# No Render: New + → Blueprint → escolher este repositório.
+services:
+  - type: web
+    name: armazem-express-api
+    runtime: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    # Faz seed dos dados de demonstração se a BD estiver vazia e arranca o servidor.
+    startCommand: npm run seed && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      # Define manualmente com o URL do frontend (Vercel) depois de o criares.
+      - key: FRONTEND_URL
+        sync: false
