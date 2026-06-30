@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Logo from '../components/Logo';
+import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -37,6 +38,41 @@ export default function Login() {
       setForm({ email: 'demo@armazem-express.pt', password: 'Demo@2025!' });
     } else {
       setForm({ email: 'funcionario@armazem-express.pt', password: 'Trabalhador@2025' });
+    }
+  };
+
+  // Recuperação de palavra-passe
+  const [recover, setRecover] = useState(null); // null | 'forgot' | 'reset'
+  const [rc, setRc] = useState({ email: '', token: '', password: '', loading: false, msg: '' });
+
+  const submitForgot = async (e) => {
+    e.preventDefault();
+    setRc((s) => ({ ...s, loading: true, msg: '' }));
+    try {
+      const { data } = await api.post('/auth/forgot-password', { email: rc.email.trim().toLowerCase() });
+      if (data.devToken) {
+        setRc((s) => ({ ...s, token: data.devToken, loading: false, msg: 'Token gerado (num sistema real seria enviado por email).' }));
+        setRecover('reset');
+      } else {
+        setRc((s) => ({ ...s, loading: false, msg: data.message || 'Se o email existir, foi enviado um link.' }));
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Erro ao processar o pedido');
+      setRc((s) => ({ ...s, loading: false }));
+    }
+  };
+
+  const submitReset = async (e) => {
+    e.preventDefault();
+    setRc((s) => ({ ...s, loading: true }));
+    try {
+      await api.post('/auth/reset-password', { token: rc.token.trim(), password: rc.password });
+      toast.success('Palavra-passe alterada! Já pode entrar.');
+      setRecover(null);
+      setRc({ email: '', token: '', password: '', loading: false, msg: '' });
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Erro ao redefinir a palavra-passe');
+      setRc((s) => ({ ...s, loading: false }));
     }
   };
 
@@ -153,17 +189,26 @@ export default function Login() {
               </div>
             </div>
 
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700 text-brand-red-500 focus:ring-brand-red-500 cursor-pointer"
-              />
-              <span className="text-sm text-neutral-600 dark:text-neutral-400">
-                Lembrar-me neste dispositivo
-              </span>
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700 text-brand-red-500 focus:ring-brand-red-500 cursor-pointer"
+                />
+                <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                  Lembrar-me
+                </span>
+              </label>
+              <button
+                type="button"
+                onClick={() => { setRecover('forgot'); setRc((s) => ({ ...s, msg: '' })); }}
+                className="text-sm font-semibold text-brand-red-500 hover:underline"
+              >
+                Esqueci-me da palavra-passe?
+              </button>
+            </div>
 
             <button type="submit" disabled={loading} className="w-full btn-primary">
               {loading ? 'A entrar...' : 'Entrar'}
@@ -201,6 +246,47 @@ export default function Login() {
           </div>
         </motion.div>
       </div>
+
+      {/* Modal de recuperação de palavra-passe */}
+      {recover && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => setRecover(null)}>
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-neutral-200 dark:border-neutral-800"
+            onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-display text-xl font-bold mb-1">Recuperar palavra-passe</h3>
+            {recover === 'forgot' ? (
+              <form onSubmit={submitForgot} className="space-y-3 mt-3">
+                <p className="text-sm text-neutral-500">Introduza o seu email para receber um link de recuperação.</p>
+                <input type="email" required className="input" placeholder="o-seu@email.pt"
+                  value={rc.email} onChange={(e) => setRc((s) => ({ ...s, email: e.target.value }))} />
+                {rc.msg && <p className="text-xs text-green-600 dark:text-green-400">{rc.msg}</p>}
+                <div className="flex gap-2 justify-end pt-1">
+                  <button type="button" onClick={() => setRecover(null)} className="btn-ghost">Fechar</button>
+                  <button type="submit" disabled={rc.loading} className="btn-primary">{rc.loading ? 'A enviar...' : 'Continuar'}</button>
+                </div>
+              </form>
+            ) : (
+              <form onSubmit={submitReset} className="space-y-3 mt-3">
+                {rc.msg && <p className="text-xs text-brand-yellow-600 dark:text-brand-yellow-400">{rc.msg}</p>}
+                <div>
+                  <label className="label">Token de recuperação</label>
+                  <input required className="input font-mono text-xs" value={rc.token}
+                    onChange={(e) => setRc((s) => ({ ...s, token: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="label">Nova palavra-passe</label>
+                  <input type="password" required className="input" placeholder="Mín. 8, maiúscula, número e símbolo"
+                    value={rc.password} onChange={(e) => setRc((s) => ({ ...s, password: e.target.value }))} />
+                </div>
+                <div className="flex gap-2 justify-end pt-1">
+                  <button type="button" onClick={() => setRecover(null)} className="btn-ghost">Fechar</button>
+                  <button type="submit" disabled={rc.loading} className="btn-primary">{rc.loading ? 'A alterar...' : 'Alterar'}</button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

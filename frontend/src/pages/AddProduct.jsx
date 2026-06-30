@@ -10,6 +10,7 @@ import api from '../lib/api';
 export default function AddProduct() {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [newCat, setNewCat] = useState('');
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
@@ -20,12 +21,17 @@ export default function AddProduct() {
     quantity: '',
     min_stock: '5',
     price: '',
+    cost_price: '',
+    expiry_date: '',
+    batch: '',
     shelf: '',
-    supplier: ''
+    supplier: '',
+    supplier_id: ''
   });
 
   useEffect(() => {
     api.get('/products/categories').then(({ data }) => setCategories(data));
+    api.get('/suppliers').then(({ data }) => setSuppliers(data)).catch(() => {});
   }, []);
 
   const validate = () => {
@@ -58,7 +64,11 @@ export default function AddProduct() {
         category: finalCategory,
         quantity: Number(form.quantity),
         min_stock: Number(form.min_stock),
-        price: Number(form.price)
+        price: Number(form.price),
+        cost_price: form.cost_price === '' ? 0 : Number(form.cost_price),
+        expiry_date: form.expiry_date || null,
+        batch: form.batch || null,
+        supplier_id: form.supplier_id || null
       });
       toast.success(`Produto "${data.name}" criado com sucesso!`);
       navigate(`/app/stock/${data.id}`);
@@ -159,13 +169,18 @@ export default function AddProduct() {
                 )}
               </Field>
 
-              <Field label="Fornecedor">
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="Nome do fornecedor (opcional)"
-                  value={form.supplier}
-                  onChange={(e) => setForm((f) => ({ ...f, supplier: e.target.value }))}
+              <Field label="Fornecedor" hint="Gerido na página Fornecedores">
+                <Select
+                  value={form.supplier_id}
+                  onChange={(v) => {
+                    const s = suppliers.find((x) => String(x.id) === String(v));
+                    setForm((f) => ({ ...f, supplier_id: v, supplier: s?.name || '' }));
+                  }}
+                  placeholder="Sem fornecedor"
+                  options={[
+                    { value: '', label: 'Sem fornecedor' },
+                    ...suppliers.map((s) => ({ value: String(s.id), label: s.name }))
+                  ]}
                 />
               </Field>
             </div>
@@ -209,7 +224,7 @@ export default function AddProduct() {
               />
             </Field>
 
-            <Field label="Preço unitário (€)" required error={errors.price}>
+            <Field label="Preço de venda (€)" required error={errors.price}>
               <input
                 type="number"
                 min="0"
@@ -218,6 +233,37 @@ export default function AddProduct() {
                 placeholder="0.00"
                 value={form.price}
                 onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
+              />
+            </Field>
+
+            <Field label="Preço de custo (€)" hint="Para cálculo de margem">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                className="input"
+                placeholder="0.00"
+                value={form.cost_price}
+                onChange={(e) => setForm((f) => ({ ...f, cost_price: e.target.value }))}
+              />
+            </Field>
+
+            <Field label="Validade" hint="Para produtos perecíveis">
+              <input
+                type="date"
+                className="input"
+                value={form.expiry_date}
+                onChange={(e) => setForm((f) => ({ ...f, expiry_date: e.target.value }))}
+              />
+            </Field>
+
+            <Field label="Lote">
+              <input
+                type="text"
+                className="input"
+                placeholder="Ex: LOT-2026-A"
+                value={form.batch}
+                onChange={(e) => setForm((f) => ({ ...f, batch: e.target.value }))}
               />
             </Field>
           </div>

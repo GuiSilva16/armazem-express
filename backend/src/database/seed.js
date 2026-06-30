@@ -15,9 +15,13 @@ if (shouldReset) {
     DELETE FROM tracking_events;
     DELETE FROM order_items;
     DELETE FROM orders;
+    DELETE FROM purchase_order_items;
+    DELETE FROM purchase_orders;
     DELETE FROM stock_movements;
     DELETE FROM notifications;
+    DELETE FROM password_resets;
     DELETE FROM products;
+    DELETE FROM suppliers;
     DELETE FROM categories;
     DELETE FROM users;
     DELETE FROM companies;
@@ -85,9 +89,36 @@ const sampleProducts = [
   { name: 'Toalha de Banho 100% Algodão', category: 'Casa', quantity: 78, min_stock: 20, price: 14.90, shelf: 'F-03-02', description: 'Toalha 100x150cm', supplier: 'Têxteis Norte' }
 ];
 
+// Fornecedores (a partir dos nomes distintos dos produtos)
+const supplierNames = [...new Set(sampleProducts.map((p) => p.supplier))];
+const insertSupplier = db.prepare(
+  `INSERT INTO suppliers (company_id, name, email, phone, nif) VALUES (?, ?, ?, ?, ?)`
+);
+const supplierMap = {};
+supplierNames.forEach((name, i) => {
+  const slug = name.toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '');
+  const r = insertSupplier.run(
+    companyId, name, `geral@${slug}.pt`, `2${String(11000000 + i * 137).slice(0, 8)}`, String(500100000 + i)
+  );
+  supplierMap[name] = r.lastInsertRowid;
+});
+
+const addDays = (n) => {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+// Validade para produtos alimentares (alguns a expirar em breve, para gerar alertas)
+const expiryFor = (p) => {
+  if (p.category !== 'Alimentação') return null;
+  if (p.name.includes('Chocolate')) return addDays(12);
+  if (p.name.includes('Café')) return addDays(25);
+  return addDays(400);
+};
+
 const insertProduct = db.prepare(
-  `INSERT INTO products (company_id, sku, name, description, category, quantity, min_stock, price, shelf, supplier, qr_code)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+  `INSERT INTO products (company_id, sku, name, description, category, quantity, min_stock, price, cost_price, expiry_date, supplier_id, shelf, supplier, qr_code)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
 );
 
 const insertMovement = db.prepare(
@@ -111,6 +142,9 @@ for (const p of sampleProducts) {
     p.quantity,
     p.min_stock,
     p.price,
+    Math.round(p.price * 0.6 * 100) / 100,
+    expiryFor(p),
+    supplierMap[p.supplier] || null,
     p.shelf,
     p.supplier,
     generateQRCode(Date.now(), sku)

@@ -22,7 +22,9 @@ import {
   Search as SearchIcon,
   Activity as ActivityIcon,
   Lock,
-  BarChart3
+  BarChart3,
+  Factory,
+  ClipboardList
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Logo from './Logo';
@@ -47,6 +49,8 @@ const navItems = [
 ];
 
 const adminItems = [
+  { to: '/app/suppliers', icon: Factory, label: 'Fornecedores' },
+  { to: '/app/purchasing', icon: ClipboardList, label: 'Reposição' },
   { to: '/app/stock/remove', icon: Trash2, label: 'Eliminar Produtos' },
   { to: '/app/team', icon: Users, label: 'Equipa' },
   { to: '/app/activity', icon: ActivityIcon, label: 'Atividade', feature: 'activity_log' },

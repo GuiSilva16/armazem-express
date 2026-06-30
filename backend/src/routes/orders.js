@@ -454,4 +454,56 @@ router.post('/:id/status', authenticate, (req, res) => {
   }
 });
 
+/**
+ * POST /api/orders/:id/return
+ * Regista a devolução de uma encomenda e repõe o stock dos seus produtos.
+ */
+router.post('/:id/return', authenticate, (req, res) => {
+  try {
+    const order = db
+      .prepare('SELECT * FROM orders WHERE id = ? AND company_id = ?')
+      .get(req.params.id, req.user.company_id);
+    if (!order) return res.status(404).json({ error: 'Encomenda não encontrada' });
+    if (order.status === 'returned') {
+      return res.status(400).json({ error: 'Esta encomenda já foi devolvida' });
+    }
+    if (order.status === 'cancelled') {
+      return res.status(400).json({ error: 'Não é possível devolver uma encomenda cancelada' });
+    }
+
+    const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+    const { reason } = req.body;
+
+    const doReturn = db.transaction(() => {
+      for (const it of items) {
+        db.prepare('UPDATE products SET quantity = quantity + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+          .run(it.quantity, it.product_id);
+        db.prepare(
+          `INSERT INTO stock_movements (company_id, product_id, type, quantity, reason, user_id)
+           VALUES (?, ?, 'add', ?, ?, ?)`
+        ).run(
+          req.user.company_id,
+          it.product_id,
+          it.quantity,
+          `Devolução (encomenda ${order.tracking_number})`,
+          req.user.id
+        );
+      }
+      db.prepare(`UPDATE orders SET status = 'returned', returned_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?`)
+        .run(order.id);
+      db.prepare(
+        `INSERT INTO tracking_events (order_id, status, location, description, user_id)
+         VALUES (?, 'returned', 'Armazém Central', ?, ?)`
+      ).run(order.id, reason?.trim() || 'Encomenda devolvida e stock reposto', req.user.id);
+    });
+    doReturn();
+
+    const updated = db.prepare('SELECT * FROM orders WHERE id = ?').get(order.id);
+    res.json({ success: true, order: updated });
+  } catch (error) {
+    console.error('Erro ao registar devolução:', error);
+    res.status(500).json({ error: 'Erro ao registar devolução' });
+  }
+});
+
 export default router;

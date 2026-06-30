@@ -102,7 +102,8 @@ export const StatusBadge = ({ status, size = 'sm' }) => {
     shipped: { label: 'Expedida', classes: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
     in_transit: { label: 'Em Trânsito', classes: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
     delivered: { label: 'Entregue', classes: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' },
-    cancelled: { label: 'Cancelada', classes: 'bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-400' }
+    cancelled: { label: 'Cancelada', classes: 'bg-neutral-200 text-neutral-700 dark:bg-neutral-800 dark:text-neutral-400' },
+    returned: { label: 'Devolvida', classes: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' }
   };
   const info = map[status] || { label: status, classes: 'bg-neutral-100 text-neutral-700' };
   const sizeCl = size === 'lg' ? 'px-3 py-1 text-sm' : 'px-2.5 py-0.5 text-xs';

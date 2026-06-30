@@ -50,7 +50,7 @@ export default function Dashboard() {
   if (loading) return <LoadingSpinner size="lg" />;
   if (!data) return null;
 
-  const { stockStats, orderStats, lowStockProducts, recentOrders, movementsByDay, byCategory, reorderSuggestions = [], topByValue = [], comparison } = data;
+  const { stockStats, orderStats, lowStockProducts, recentOrders, movementsByDay, byCategory, reorderSuggestions = [], topByValue = [], comparison, expiringProducts = [] } = data;
 
   // Saudação consoante a hora de Portugal (Europe/Lisbon), independente do fuso do dispositivo
   const ptHour = parseInt(
@@ -130,7 +130,12 @@ export default function Dashboard() {
     reorderSuggestions.length > 0 && {
       icon: ShoppingCart, tone: 'red',
       text: `${reorderSuggestions.length} produto(s) sugeridos para reposição`,
-      action: 'Ver lista', to: null
+      action: 'Repor', to: '/app/purchasing'
+    },
+    expiringProducts.length > 0 && {
+      icon: Clock, tone: 'yellow',
+      text: `${expiringProducts.length} produto(s) a expirar nos próximos 30 dias`,
+      action: 'Ver', to: '/app/stock'
     }
   ].filter(Boolean);
 
@@ -155,7 +160,7 @@ export default function Dashboard() {
     { icon: Truck, label: 'Encomendas', value: orderStats.total, subtitle: `${orderStats.delivered} entregues`, color: 'blue' },
     { icon: Clock, label: 'Pendentes', value: orderStats.pending, subtitle: 'A processar', color: 'yellow' },
     { icon: TrendingUp, label: 'Em Trânsito', value: orderStats.inTransit, subtitle: 'A caminho', color: 'red' },
-    { icon: DollarSign, label: 'Valor Stock', value: formatCurrency(stockStats.totalValue), subtitle: 'Inventário', color: 'neutral' }
+    { icon: DollarSign, label: 'Valor Stock', value: formatCurrency(stockStats.totalValue), subtitle: `Margem ${stockStats.marginPct ?? 0}% · custo ${formatCurrency(stockStats.totalCost || 0)}`, color: 'neutral' }
   ];
 
   return (

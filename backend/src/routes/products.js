@@ -213,6 +213,10 @@ router.post('/', authenticate, (req, res) => {
       quantity,
       min_stock,
       price,
+      cost_price,
+      expiry_date,
+      batch,
+      supplier_id,
       shelf,
       supplier,
       sku: providedSku
@@ -268,8 +272,8 @@ router.post('/', authenticate, (req, res) => {
 
     const result = db
       .prepare(
-        `INSERT INTO products (company_id, sku, name, description, category, quantity, min_stock, price, shelf, supplier, qr_code)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO products (company_id, sku, name, description, category, quantity, min_stock, price, cost_price, expiry_date, batch, supplier_id, shelf, supplier, qr_code)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         req.user.company_id,
@@ -280,6 +284,10 @@ router.post('/', authenticate, (req, res) => {
         Number(quantity),
         Number(min_stock),
         Number(price),
+        isPositiveNumber(cost_price) ? Number(cost_price) : 0,
+        expiry_date?.trim() || null,
+        batch?.trim() || null,
+        supplier_id ? Number(supplier_id) : null,
         shelf.trim(),
         supplier?.trim() || '',
         generateQRCode(Date.now(), sku)
@@ -412,6 +420,10 @@ router.put('/:id', authenticate, (req, res) => {
       quantity,
       min_stock,
       price,
+      cost_price,
+      expiry_date,
+      batch,
+      supplier_id,
       shelf,
       supplier
     } = req.body;
@@ -422,7 +434,8 @@ router.put('/:id', authenticate, (req, res) => {
     db.prepare(
       `UPDATE products SET
         name = ?, description = ?, category = ?, quantity = ?,
-        min_stock = ?, price = ?, shelf = ?, supplier = ?,
+        min_stock = ?, price = ?, cost_price = ?, expiry_date = ?, batch = ?, supplier_id = ?,
+        shelf = ?, supplier = ?,
         updated_at = CURRENT_TIMESTAMP
        WHERE id = ?`
     ).run(
@@ -432,6 +445,10 @@ router.put('/:id', authenticate, (req, res) => {
       newQty,
       min_stock !== undefined ? Number(min_stock) : product.min_stock,
       price !== undefined ? Number(price) : product.price,
+      cost_price !== undefined ? Number(cost_price) : product.cost_price,
+      expiry_date !== undefined ? (expiry_date?.trim() || null) : product.expiry_date,
+      batch !== undefined ? (batch?.trim() || null) : product.batch,
+      supplier_id !== undefined ? (supplier_id ? Number(supplier_id) : null) : product.supplier_id,
       shelf?.trim() || product.shelf,
       supplier?.trim() ?? product.supplier,
       req.params.id

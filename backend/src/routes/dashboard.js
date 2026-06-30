@@ -147,10 +147,29 @@ router.get('/', authenticate, (req, res) => {
           COALESCE(SUM(CASE WHEN quantity > 0 AND quantity <= min_stock THEN 1 ELSE 0 END), 0) as lowStock,
           COALESCE(SUM(CASE WHEN quantity = 0 THEN 1 ELSE 0 END), 0) as outOfStock,
           COALESCE(SUM(quantity * price), 0) as totalValue,
+          COALESCE(SUM(quantity * cost_price), 0) as totalCost,
           COALESCE(SUM(quantity), 0) as totalUnits
         FROM products WHERE company_id = ?`
       )
       .get(companyId);
+    // Margem de lucro potencial do inventário (venda - custo)
+    stockStats.potentialProfit = (stockStats.totalValue || 0) - (stockStats.totalCost || 0);
+    stockStats.marginPct = stockStats.totalValue > 0
+      ? Math.round((stockStats.potentialProfit / stockStats.totalValue) * 100)
+      : 0;
+
+    // Produtos a expirar nos próximos 30 dias (ou já expirados)
+    const expiringProducts = db
+      .prepare(
+        `SELECT id, name, sku, quantity, expiry_date,
+          CAST(julianday(expiry_date) - julianday('now') AS INTEGER) as days_left
+         FROM products
+         WHERE company_id = ? AND expiry_date IS NOT NULL AND expiry_date != ''
+           AND julianday(expiry_date) - julianday('now') <= 30
+         ORDER BY expiry_date ASC
+         LIMIT 10`
+      )
+      .all(companyId);
 
     // Order stats
     const orderStats = db
@@ -291,6 +310,7 @@ router.get('/', authenticate, (req, res) => {
       movementsByDay,
       byCategory,
       reorderSuggestions,
+      expiringProducts,
       comparison,
       days
     });

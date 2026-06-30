@@ -312,6 +312,86 @@ const initDb = () => {
     }
   } catch (e) {}
 
+  // ── Migração: novas colunas em products (custo, validade, lote, fornecedor) ──
+  const productCols = db.prepare(`PRAGMA table_info(products)`).all();
+  const productNewCols = {
+    cost_price: 'REAL DEFAULT 0',
+    expiry_date: 'TEXT',
+    batch: 'TEXT',
+    supplier_id: 'INTEGER'
+  };
+  for (const [col, type] of Object.entries(productNewCols)) {
+    if (!productCols.some((c) => c.name === col)) {
+      db.exec(`ALTER TABLE products ADD COLUMN ${col} ${type}`);
+    }
+  }
+
+  // ── Migração: marca de devolução em orders ──
+  const orderCols = db.prepare(`PRAGMA table_info(orders)`).all();
+  if (!orderCols.some((c) => c.name === 'returned_at')) {
+    db.exec(`ALTER TABLE orders ADD COLUMN returned_at DATETIME`);
+  }
+
+  // ── Tabela de fornecedores ──
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS suppliers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      company_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      email TEXT,
+      phone TEXT,
+      nif TEXT,
+      address TEXT,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE
+    );
+  `);
+
+  // ── Encomendas de compra / reposição ──
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS purchase_orders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      company_id INTEGER NOT NULL,
+      supplier_id INTEGER,
+      reference TEXT,
+      status TEXT NOT NULL DEFAULT 'pending',
+      total_cost REAL DEFAULT 0,
+      notes TEXT,
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      received_at DATETIME,
+      FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE CASCADE,
+      FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
+      FOREIGN KEY (created_by) REFERENCES users(id)
+    );
+  `);
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS purchase_order_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      purchase_order_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      product_name TEXT NOT NULL,
+      quantity INTEGER NOT NULL,
+      unit_cost REAL NOT NULL DEFAULT 0,
+      FOREIGN KEY (purchase_order_id) REFERENCES purchase_orders(id) ON DELETE CASCADE,
+      FOREIGN KEY (product_id) REFERENCES products(id)
+    );
+  `);
+
+  // ── Pedidos de recuperação de palavra-passe ──
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS password_resets (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      token_hash TEXT NOT NULL,
+      expires_at DATETIME NOT NULL,
+      used INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+  `);
+
   console.log('✅ Base de dados inicializada com sucesso');
 };
 

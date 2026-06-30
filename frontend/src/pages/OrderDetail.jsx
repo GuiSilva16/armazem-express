@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, User, MapPin, Phone, Mail, Package, Truck,
-  CheckCircle2, Clock, Circle, XCircle
+  CheckCircle2, Clock, Circle, XCircle, RotateCcw
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { LoadingSpinner, StatusBadge } from '../components/ui';
@@ -55,6 +55,20 @@ export default function OrderDetail() {
       load();
     } catch (err) {
       toast.error(err.response?.data?.error || 'Erro');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const registerReturn = async () => {
+    if (!window.confirm('Registar a devolução desta encomenda? O stock dos produtos será reposto.')) return;
+    setUpdating(true);
+    try {
+      await api.post(`/orders/${id}/return`);
+      toast.success('Devolução registada — stock reposto');
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Erro ao registar devolução');
     } finally {
       setUpdating(false);
     }
@@ -153,6 +167,25 @@ export default function OrderDetail() {
                 >
                   <XCircle size={14} /> Cancelar
                 </button>
+              </div>
+            )}
+
+            {/* Devolução */}
+            {order.status !== 'returned' && order.status !== 'cancelled' && (
+              <div className="mt-3">
+                <button
+                  onClick={registerReturn}
+                  disabled={updating}
+                  className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-neutral-200 dark:border-neutral-700 hover:border-brand-red-500 hover:text-brand-red-500 text-xs font-semibold"
+                >
+                  <RotateCcw size={14} /> Registar devolução
+                </button>
+              </div>
+            )}
+            {order.status === 'returned' && (
+              <div className="mt-3 flex items-center gap-2 text-sm text-brand-red-500 font-semibold">
+                <RotateCcw size={16} /> Encomenda devolvida — stock reposto
+                {order.returned_at && <span className="text-neutral-500 font-normal">· {formatDate(order.returned_at)}</span>}
               </div>
             )}
 

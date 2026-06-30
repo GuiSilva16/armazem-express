@@ -1,12 +1,46 @@
 import express from 'express';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import db from '../database/db.js';
 import { authenticate } from '../middleware/auth.js';
 import { generateStrongPassword } from '../utils/generators.js';
-import { isValidEmail, isValidName } from '../utils/validators.js';
+import { isValidEmail, isValidName, isStrongPassword } from '../utils/validators.js';
 
 const router = express.Router();
+
+// ── Rate limiting do login (proteção contra força bruta, em memória) ──
+const loginAttempts = new Map(); // chave (ip+email) -> { count, firstAt }
+const MAX_ATTEMPTS = 6;
+const WINDOW_MS = 15 * 60 * 1000;
+
+const attemptKey = (req) =>
+  `${req.ip || 'unknown'}:${(req.body?.email || '').toLowerCase().trim()}`;
+
+function rateLimitLogin(req, res, next) {
+  const rec = loginAttempts.get(attemptKey(req));
+  const now = Date.now();
+  if (rec && now - rec.firstAt < WINDOW_MS && rec.count >= MAX_ATTEMPTS) {
+    const mins = Math.ceil((WINDOW_MS - (now - rec.firstAt)) / 60000);
+    return res
+      .status(429)
+      .json({ error: `Demasiadas tentativas de login. Tente novamente dentro de ~${mins} min.` });
+  }
+  next();
+}
+
+function registerFailedLogin(req) {
+  const key = attemptKey(req);
+  const now = Date.now();
+  const rec = loginAttempts.get(key);
+  if (!rec || now - rec.firstAt >= WINDOW_MS) {
+    loginAttempts.set(key, { count: 1, firstAt: now });
+  } else {
+    rec.count += 1;
+  }
+}
+
+const clearLoginAttempts = (req) => loginAttempts.delete(attemptKey(req));
 
 /**
  * GET /api/auth/plans
@@ -152,7 +186,7 @@ router.post('/subscribe', (req, res) => {
  * POST /api/auth/login
  * Login de utilizador (admin ou funcionário)
  */
-router.post('/login', (req, res) => {
+router.post('/login', rateLimitLogin, (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -170,6 +204,7 @@ router.post('/login', (req, res) => {
       .get(email.toLowerCase().trim());
 
     if (!user) {
+      registerFailedLogin(req);
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
 
@@ -185,8 +220,11 @@ router.post('/login', (req, res) => {
 
     const valid = bcrypt.compareSync(password, user.password_hash);
     if (!valid) {
+      registerFailedLogin(req);
       return res.status(401).json({ error: 'Credenciais inválidas' });
     }
+
+    clearLoginAttempts(req);
 
     const token = jwt.sign(
       { userId: user.id, companyId: user.company_id, role: user.role },
@@ -209,6 +247,88 @@ router.post('/login', (req, res) => {
   } catch (error) {
     console.error('Erro no login:', error);
     res.status(500).json({ error: 'Erro ao fazer login' });
+  }
+});
+
+/**
+ * POST /api/auth/forgot-password
+ * Gera um token de recuperação (válido 1h). Responde sempre 200 para não revelar
+ * se o email existe. Em desenvolvimento devolve o token para se poder testar o fluxo
+ * (num sistema real seria enviado por email).
+ */
+router.post('/forgot-password', (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || !isValidEmail(email)) {
+      return res.status(400).json({ error: 'Email inválido' });
+    }
+    const user = db
+      .prepare('SELECT id FROM users WHERE email = ? AND active = 1')
+      .get(email.toLowerCase().trim());
+
+    const response = { message: 'Se o email existir, foi enviado um link de recuperação.' };
+
+    if (user) {
+      const token = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+      // Invalida pedidos anteriores e cria o novo
+      db.prepare('UPDATE password_resets SET used = 1 WHERE user_id = ? AND used = 0').run(user.id);
+      db.prepare(
+        'INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?, ?, ?)'
+      ).run(user.id, tokenHash, expiresAt);
+
+      // Só fora de produção devolvemos o token (substitui o envio de email)
+      if (process.env.NODE_ENV !== 'production') {
+        response.devToken = token;
+        response.devNote = 'Em produção este token seria enviado por email.';
+      }
+    }
+
+    res.json(response);
+  } catch (error) {
+    console.error('Erro no forgot-password:', error);
+    res.status(500).json({ error: 'Erro ao processar o pedido' });
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Body: { token, password } — define uma nova palavra-passe a partir de um token válido.
+ */
+router.post('/reset-password', (req, res) => {
+  try {
+    const { token, password } = req.body;
+    if (!token || !password) {
+      return res.status(400).json({ error: 'Token e nova palavra-passe são obrigatórios' });
+    }
+    if (!isStrongPassword(password)) {
+      return res.status(400).json({
+        error: 'Palavra-passe fraca: mín. 8 caracteres, com maiúscula, minúscula, número e símbolo.'
+      });
+    }
+
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const reset = db
+      .prepare(
+        `SELECT * FROM password_resets
+         WHERE token_hash = ? AND used = 0 AND expires_at > CURRENT_TIMESTAMP`
+      )
+      .get(tokenHash);
+
+    if (!reset) {
+      return res.status(400).json({ error: 'Token inválido ou expirado. Peça um novo link.' });
+    }
+
+    const hash = bcrypt.hashSync(password, 10);
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, reset.user_id);
+    db.prepare('UPDATE password_resets SET used = 1 WHERE id = ?').run(reset.id);
+
+    res.json({ success: true, message: 'Palavra-passe alterada com sucesso. Já pode entrar.' });
+  } catch (error) {
+    console.error('Erro no reset-password:', error);
+    res.status(500).json({ error: 'Erro ao redefinir a palavra-passe' });
   }
 });
 
