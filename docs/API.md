@@ -110,9 +110,12 @@ A maioria dos endpoints exige **login**. O fluxo é:
 | Método | Endpoint | Acesso | Descrição |
 |---|---|---|---|
 | `GET` | `/api/auth/plans` | 🔓 | Lista os 3 planos (Starter, Business, Enterprise) |
-| `POST` | `/api/auth/login` | 🔓 | Login → devolve token + dados do utilizador |
+| `POST` | `/api/auth/login` | 🔓 | Login → devolve token + dados (limitado a 6 tentativas / 15 min) |
+| `POST` | `/api/auth/forgot-password` | 🔓 | Pede recuperação de palavra-passe (gera token, válido 1h) |
+| `POST` | `/api/auth/reset-password` | 🔓 | Define nova palavra-passe a partir de um token |
 | `POST` | `/api/auth/subscribe` | 🔓 | Subscrição direta (legado, antes do Stripe) |
-| `GET` | `/api/auth/me` | 🔐 | Dados do utilizador autenticado + plano |
+| `GET` | `/api/auth/me` | 🔐 | Dados do utilizador autenticado + plano + empresa |
+| `PUT` | `/api/auth/company` | 👑 | Atualiza dados da empresa (morada, NIF, logótipo) |
 | `POST` | `/api/auth/change-plan` | 👑 | Mudar plano (legado, sem cobrança) |
 
 **Exemplo — Login:**
@@ -162,11 +165,15 @@ Content-Type: application/json
   "quantity": 50,
   "min_stock": 10,
   "price": 29.99,
-  "shelf": "A-12",
-  "supplier": "Logitech"
+  "cost_price": 18.00,
+  "expiry_date": "2027-01-01",
+  "batch": "LOT-2026-A",
+  "supplier_id": 3,
+  "shelf": "A-12"
 }
 ```
 > O `sku` e o `qr_code` são gerados automaticamente se não forem fornecidos.
+> Campos opcionais: `cost_price` (para margem de lucro), `expiry_date` e `batch` (perecíveis), `supplier_id` (liga a um fornecedor).
 
 **Exemplo — Ajustar stock:**
 ```http
@@ -189,6 +196,7 @@ Authorization: Bearer <token>
 | `GET` | `/api/orders/export` | ⭐ csv_export | Exporta encomendas em CSV |
 | `POST` | `/api/orders` | 🔐 | Cria encomenda (valida contactos PT, desconta stock) |
 | `POST` | `/api/orders/:id/status` | 🔐 | Atualiza estado (pending → shipped → in_transit → delivered) |
+| `POST` | `/api/orders/:id/return` | 🔐 | Regista devolução e repõe o stock dos produtos |
 
 **Exemplo — Criar encomenda:**
 ```http
@@ -206,6 +214,40 @@ Authorization: Bearer <token>
 }
 ```
 > Valida o telefone (9 dígitos, começa em 2/3/9) e o código postal PT (`XXXX-XXX`). Gera um `tracking_number` único (`AE` + 12 dígitos + `PT`) e desconta o stock automaticamente.
+
+---
+
+### 🏭 Fornecedores · `/api/suppliers`
+
+| Método | Endpoint | Acesso | Descrição |
+|---|---|---|---|
+| `GET` | `/api/suppliers` | 🔐 | Lista fornecedores (com nº de produtos associados) |
+| `POST` | `/api/suppliers` | 👑 | Cria um fornecedor (nome, email, telefone, NIF, morada) |
+| `PUT` | `/api/suppliers/:id` | 👑 | Edita um fornecedor |
+| `DELETE` | `/api/suppliers/:id` | 👑 | Elimina (os produtos ficam sem fornecedor) |
+
+---
+
+### 📋 Reposição · `/api/purchase-orders` (encomendas de compra)
+
+| Método | Endpoint | Acesso | Descrição |
+|---|---|---|---|
+| `GET` | `/api/purchase-orders` | 🔐 | Lista encomendas de compra (com fornecedor e totais) |
+| `GET` | `/api/purchase-orders/:id` | 🔐 | Detalhe + itens |
+| `POST` | `/api/purchase-orders` | 👑 | Cria encomenda de compra a um fornecedor |
+| `POST` | `/api/purchase-orders/:id/receive` | 👑 | Receciona: repõe o stock e regista os movimentos |
+| `POST` | `/api/purchase-orders/:id/cancel` | 👑 | Cancela uma encomenda pendente |
+
+**Exemplo — Criar reposição:**
+```http
+POST /api/purchase-orders
+Authorization: Bearer <token>
+
+{
+  "supplier_id": 3,
+  "items": [{ "product_id": 5, "quantity": 20, "unit_cost": 4.50 }]
+}
+```
 
 ---
 

@@ -16,10 +16,11 @@ PAP · Guilherme Silva · Técnico de Gestão e Programação de Sistemas Inform
 6. [Rastreio público](#6-rastreio-público)
 7. [Relatórios](#7-relatórios)
 8. [Equipa](#8-equipa)
-9. [Definições](#9-definições)
-10. [Leitor de QR](#10-leitor-de-qr)
-11. [Perfis e permissões](#11-perfis-e-permissões)
-12. [Perguntas frequentes](#12-perguntas-frequentes)
+9. [Fornecedores e reposição](#9-fornecedores-e-reposição)
+10. [Definições](#10-definições)
+11. [Leitor de QR](#11-leitor-de-qr)
+12. [Perfis e permissões](#12-perfis-e-permissões)
+13. [Perguntas frequentes](#13-perguntas-frequentes)
 
 ---
 
@@ -57,6 +58,8 @@ O **Armazém Express** é uma aplicação web que ajuda pequenas e médias empre
 
 > Na primeira entrada aparece um **ecrã de boas-vindas** com um resumo das funcionalidades.
 
+**Esqueceu-se da palavra-passe?** Clique em *"Esqueci-me da palavra-passe?"*, introduza o email e siga o link de recuperação para definir uma nova. Por segurança, o login bloqueia temporariamente após várias tentativas falhadas.
+
 ---
 
 ## 3. Painel principal (Dashboard)
@@ -82,8 +85,11 @@ Menu lateral → **Stock**.
 
 ### 4.1 Adicionar um produto
 1. Clica em **"Adicionar"** (ou no atalho do dashboard).
-2. Preenche: nome, categoria, quantidade, stock mínimo, preço, prateleira, fornecedor.
+2. Preenche: nome, categoria, quantidade, stock mínimo, **preço de venda**, **preço de custo**, **validade** e **lote** (opcionais), prateleira e **fornecedor** (lista).
 3. Clica em **"Guardar"**. O sistema gera automaticamente um **SKU** e um **código QR**.
+
+> 💰 O **preço de custo** permite calcular a **margem de lucro** e o valor do inventário a custo (visíveis no dashboard).
+> 📅 A **validade** ativa alertas de produtos a expirar (úteis para perecíveis).
 
 > 📷 [Imagem: formulário de adicionar produto]
 
@@ -119,6 +125,9 @@ Menu lateral → **Encomendas** / **Enviar**.
 > 📷 [Imagem: criação de encomenda]
 
 Os estados de uma encomenda evoluem: **Pendente → Expedida → Em trânsito → Entregue**.
+
+### 5.1 Devoluções
+Na ficha de uma encomenda, o botão **"Registar devolução"** marca-a como **Devolvida** e **repõe automaticamente o stock** dos produtos que tinham sido descontados.
 
 ---
 
@@ -159,7 +168,32 @@ Menu lateral → **Equipa** (apenas administradores).
 
 ---
 
-## 9. Definições
+## 9. Fornecedores e reposição
+
+### 9.1 Fornecedores
+Menu lateral → **Fornecedores** (admin).
+
+- Ver todos os fornecedores, com o número de produtos associados a cada um.
+- **Adicionar / editar** fornecedores (nome, email, telefone, NIF, morada, notas).
+- Ao criar um produto, pode associá-lo a um fornecedor da lista.
+
+> 📷 [Imagem: página de fornecedores]
+
+### 9.2 Reposição (encomendas de compra)
+Menu lateral → **Reposição** (admin).
+
+1. A coluna **"Sugestões de reposição"** mostra os produtos com **stock baixo**, com uma quantidade sugerida.
+2. Clica em **"Adicionar"** para os juntar à nova encomenda de compra.
+3. Escolhe o **fornecedor**, ajusta quantidades e custos, e clica em **"Criar encomenda de compra"**.
+4. Quando a mercadoria chega, clica em **"Rececionar"** — o **stock é reposto automaticamente** e fica registado no histórico de movimentos.
+
+> Isto fecha o ciclo com a *previsão de rutura*: passa de "vai faltar" para "repor com um clique".
+
+> 📷 [Imagem: página de reposição]
+
+---
+
+## 10. Definições
 
 Menu lateral → **Definições**.
 
@@ -174,7 +208,7 @@ Menu lateral → **Definições**.
 
 ---
 
-## 10. Leitor de QR
+## 11. Leitor de QR
 
 Menu lateral → **QR Scanner**.
 
@@ -182,13 +216,15 @@ Permite ler o código QR de um produto através da **câmara do telemóvel/compu
 
 ---
 
-## 11. Perfis e permissões
+## 12. Perfis e permissões
 
 | Ação | Administrador | Funcionário |
 |------|:---:|:---:|
 | Ver dashboard e stock | ✅ | ✅ |
 | Adicionar/editar produtos | ✅ | ✅ |
-| Criar encomendas | ✅ | ✅ |
+| Criar encomendas e registar devoluções | ✅ | ✅ |
+| Ver fornecedores | ✅ | ✅ |
+| Gerir fornecedores e reposições | ✅ | ❌ |
 | Gerir equipa | ✅ | ❌ |
 | Dados da empresa e faturação | ✅ | ❌ |
 | Mudar de plano | ✅ | ❌ |
@@ -196,7 +232,7 @@ Permite ler o código QR de um produto através da **câmara do telemóvel/compu
 
 ---
 
-## 12. Perguntas frequentes
+## 13. Perguntas frequentes
 
 **O site demora a abrir na primeira vez.**
 No alojamento gratuito, o servidor "adormece" após ~15 minutos sem uso. O primeiro acesso seguinte pode demorar ~50 segundos a responder. Depois fica rápido.
