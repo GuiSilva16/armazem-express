@@ -35,6 +35,9 @@ export default function ProductDetail() {
         category: data.category,
         min_stock: data.min_stock,
         price: data.price,
+        cost_price: data.cost_price || 0,
+        expiry_date: data.expiry_date || '',
+        batch: data.batch || '',
         shelf: data.shelf,
         supplier: data.supplier || ''
       });
@@ -300,11 +303,42 @@ export default function ProductDetail() {
                 )}
               </div>
               <div>
-                <dt className="text-xs font-bold uppercase text-neutral-500 mb-1 flex items-center gap-1"><DollarSign size={12}/> Preço</dt>
+                <dt className="text-xs font-bold uppercase text-neutral-500 mb-1 flex items-center gap-1"><DollarSign size={12}/> Preço de venda</dt>
                 {editMode ? (
                   <input type="number" step="0.01" className="input" value={editForm.price} onChange={(e) => setEditForm({ ...editForm, price: Number(e.target.value) })} />
                 ) : (
                   <dd className="font-bold">{formatCurrency(product.price)}</dd>
+                )}
+              </div>
+              <div>
+                <dt className="text-xs font-bold uppercase text-neutral-500 mb-1 flex items-center gap-1"><DollarSign size={12}/> Preço de custo</dt>
+                {editMode ? (
+                  <input type="number" step="0.01" className="input" value={editForm.cost_price} onChange={(e) => setEditForm({ ...editForm, cost_price: Number(e.target.value) })} />
+                ) : (
+                  <dd className="font-bold">
+                    {formatCurrency(product.cost_price || 0)}
+                    {product.price > 0 && product.cost_price > 0 && (
+                      <span className="ml-2 text-xs font-semibold text-green-600 dark:text-green-400">
+                        margem {Math.round(((product.price - product.cost_price) / product.price) * 100)}%
+                      </span>
+                    )}
+                  </dd>
+                )}
+              </div>
+              <div>
+                <dt className="text-xs font-bold uppercase text-neutral-500 mb-1">Validade</dt>
+                {editMode ? (
+                  <input type="date" className="input" value={editForm.expiry_date} onChange={(e) => setEditForm({ ...editForm, expiry_date: e.target.value })} />
+                ) : (
+                  <dd className="font-bold">{product.expiry_date || '—'}</dd>
+                )}
+              </div>
+              <div>
+                <dt className="text-xs font-bold uppercase text-neutral-500 mb-1">Lote</dt>
+                {editMode ? (
+                  <input className="input" value={editForm.batch} onChange={(e) => setEditForm({ ...editForm, batch: e.target.value })} />
+                ) : (
+                  <dd className="font-bold">{product.batch || '—'}</dd>
                 )}
               </div>
               <div>
