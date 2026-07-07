@@ -52,7 +52,7 @@ export default function Stock() {
       const params = {};
       if (search) params.search = search;
       if (category !== 'all') params.category = category;
-      if (status !== 'all') params.status = status;
+      if (status !== 'all' && status !== 'expiring') params.status = status;
       const [{ data: prods }, { data: cats }] = await Promise.all([
         api.get('/products', { params }),
         api.get('/products/categories')
@@ -78,7 +78,7 @@ export default function Stock() {
       const params = {};
       if (search) params.search = search;
       if (category !== 'all') params.category = category;
-      if (status !== 'all') params.status = status;
+      if (status !== 'all' && status !== 'expiring') params.status = status;
       api.get('/products', { params }).then(({ data }) => setProducts(data)).catch(() => {});
     }, 10000);
     return () => clearInterval(interval);
@@ -126,7 +126,12 @@ export default function Stock() {
   };
 
   // Vista filtrada por datas (created_at), com ordenação por coluna e favoritos no topo
-  const view = filterByRange(products, 'created_at', dateFrom, dateTo);
+  let view = filterByRange(products, 'created_at', dateFrom, dateTo);
+  // Filtro "a expirar": produtos com validade nos próximos 30 dias (tratado no cliente)
+  if (status === 'expiring') {
+    const limit = Date.now() + 30 * 24 * 3600 * 1000;
+    view = view.filter((p) => p.expiry_date && new Date(p.expiry_date).getTime() <= limit);
+  }
 
   const statusRank = (p) => (p.quantity === 0 ? 2 : p.quantity <= p.min_stock ? 1 : 0);
   const sortAccessors = {
@@ -356,7 +361,8 @@ export default function Stock() {
               { value: 'all', label: 'Todos os estados' },
               { value: 'in_stock', label: 'Em Stock' },
               { value: 'low_stock', label: 'Stock Baixo' },
-              { value: 'out_of_stock', label: 'Sem Stock' }
+              { value: 'out_of_stock', label: 'Sem Stock' },
+              { value: 'expiring', label: 'A expirar (30 dias)' }
             ]}
           />
         </div>

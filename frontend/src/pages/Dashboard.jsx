@@ -135,7 +135,7 @@ export default function Dashboard() {
     expiringProducts.length > 0 && {
       icon: Clock, tone: 'yellow',
       text: `${expiringProducts.length} produto(s) a expirar nos próximos 30 dias`,
-      action: 'Ver', to: '/app/stock'
+      action: 'Ver', to: '/app/stock?status=expiring'
     }
   ].filter(Boolean);
 

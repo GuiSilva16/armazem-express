@@ -97,6 +97,22 @@ export default function Landing() {
       // Redireciona para Stripe Checkout
       window.location.href = data.url;
     } catch (err) {
+      // Se o Stripe não está configurado no servidor (ex.: demo online),
+      // regista a conta sem pagamento e mostra as credenciais geradas.
+      if (err.response?.status === 503) {
+        try {
+          const { data } = await api.post('/auth/subscribe', {
+            ...form,
+            planId: selectedPlan.id
+          });
+          setCredentials(data.credentials);
+        } catch (err2) {
+          toast.error(err2.response?.data?.error || 'Erro ao criar a conta');
+        } finally {
+          setSubscribing(false);
+        }
+        return;
+      }
       toast.error(err.response?.data?.error || 'Erro ao iniciar pagamento');
       setSubscribing(false);
     }

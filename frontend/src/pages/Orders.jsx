@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Truck, Search, Plus, Package, MapPin, User, Download, Printer, ClipboardList } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -13,10 +13,11 @@ import { useAuth } from '../context/AuthContext';
 import { planHasFeature } from '../lib/planFeatures';
 
 export default function Orders() {
+  const [searchParams] = useSearchParams();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState('all');
+  const [status, setStatus] = useState(searchParams.get('status') || 'all');
   const [period, setPeriod] = useState('all');
   const [exporting, setExporting] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
