@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Search, Filter, Package, Trash2, Eye, Edit3, MapPin, Download, Printer, ClipboardList, QrCode, Upload, FileUp, CheckCircle2, AlertTriangle, Star } from 'lucide-react';
+import { Plus, Search, Filter, Package, Trash2, Eye, Edit3, MapPin, Download, Printer, ClipboardList, QrCode, Upload, FileUp, CheckCircle2, AlertTriangle, Star, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PageHeader, StatusBadge, LoadingSpinner, EmptyState, Modal } from '../components/ui';
 import PrintReport from '../components/PrintReport';
@@ -28,6 +28,7 @@ export default function Stock() {
   const [importText, setImportText] = useState('');
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
+  const [sort, setSort] = useState({ key: null, dir: 'asc' });
   const [pinned, setPinned] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('armazem_pinned') || '[]')); } catch { return new Set(); }
   });
@@ -124,9 +125,47 @@ export default function Stock() {
     }
   };
 
-  // Vista filtrada por datas (created_at), com favoritos no topo
+  // Vista filtrada por datas (created_at), com ordenação por coluna e favoritos no topo
   const view = filterByRange(products, 'created_at', dateFrom, dateTo);
-  const sortedView = [...view].sort((a, b) => (pinned.has(b.id) ? 1 : 0) - (pinned.has(a.id) ? 1 : 0));
+
+  const statusRank = (p) => (p.quantity === 0 ? 2 : p.quantity <= p.min_stock ? 1 : 0);
+  const sortAccessors = {
+    name: (p) => (p.name || '').toLowerCase(),
+    category: (p) => (p.category || '').toLowerCase(),
+    shelf: (p) => (p.shelf || '').toLowerCase(),
+    quantity: (p) => p.quantity,
+    price: (p) => p.price,
+    status: (p) => statusRank(p)
+  };
+  const toggleSort = (key) =>
+    setSort((s) => (s.key === key ? { key, dir: s.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'asc' }));
+
+  const sortedView = [...view];
+  if (sort.key && sortAccessors[sort.key]) {
+    const acc = sortAccessors[sort.key];
+    sortedView.sort((a, b) => {
+      const va = acc(a), vb = acc(b);
+      if (va < vb) return sort.dir === 'asc' ? -1 : 1;
+      if (va > vb) return sort.dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
+  // favoritos sempre no topo (mantém a ordenação dentro de cada grupo)
+  sortedView.sort((a, b) => (pinned.has(b.id) ? 1 : 0) - (pinned.has(a.id) ? 1 : 0));
+
+  const SortTh = ({ label, k, align }) => (
+    <th className={align === 'right' ? 'text-right' : ''}>
+      <button
+        onClick={() => toggleSort(k)}
+        className={`inline-flex items-center gap-1 font-semibold hover:text-brand-red-500 transition ${align === 'right' ? 'flex-row-reverse' : ''}`}
+      >
+        {label}
+        {sort.key === k
+          ? (sort.dir === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />)
+          : <ArrowUpDown size={13} className="opacity-30" />}
+      </button>
+    </th>
+  );
 
   const copySummary = () => {
     const totalValue = view.reduce((s, p) => s + p.quantity * p.price, 0);
@@ -343,6 +382,30 @@ export default function Stock() {
         </div>
       ) : (
         <>
+          {/* Ordenação (telemóvel) */}
+          <div className="md:hidden flex items-center gap-2 mb-3 overflow-x-auto pb-1">
+            <span className="text-xs text-neutral-500 flex-shrink-0">Ordenar:</span>
+            {[
+              { k: 'name', label: 'Nome' },
+              { k: 'quantity', label: 'Qtd.' },
+              { k: 'price', label: 'Preço' },
+              { k: 'status', label: 'Estado' }
+            ].map((o) => (
+              <button
+                key={o.k}
+                onClick={() => toggleSort(o.k)}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border flex-shrink-0 transition ${
+                  sort.key === o.k
+                    ? 'border-brand-red-500 text-brand-red-500 bg-brand-red-500/5'
+                    : 'border-neutral-200 dark:border-neutral-700 text-neutral-500'
+                }`}
+              >
+                {o.label}
+                {sort.key === o.k && (sort.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />)}
+              </button>
+            ))}
+          </div>
+
           {/* Mobile cards */}
           <div className="md:hidden space-y-3">
             {sortedView.map((p, i) => {
@@ -393,12 +456,12 @@ export default function Stock() {
               <table className="modern-table">
                 <thead>
                   <tr>
-                    <th>Produto</th>
-                    <th>Categoria</th>
-                    <th>Localização</th>
-                    <th>Quantidade</th>
-                    <th>Preço</th>
-                    <th>Estado</th>
+                    <SortTh label="Produto" k="name" />
+                    <SortTh label="Categoria" k="category" />
+                    <SortTh label="Localização" k="shelf" />
+                    <SortTh label="Quantidade" k="quantity" />
+                    <SortTh label="Preço" k="price" />
+                    <SortTh label="Estado" k="status" />
                     <th className="text-right">Ações</th>
                   </tr>
                 </thead>
