@@ -7,6 +7,24 @@ import { PageHeader } from '../components/ui';
 import Select from '../components/Select';
 import api from '../lib/api';
 
+// Definido FORA do componente para não ser recriado a cada tecla (senão os campos perdem o foco)
+function Field({ label, required, error, hint, children }) {
+  return (
+    <div>
+      <label className="label">
+        {label} {required && <span className="text-brand-red-500">*</span>}
+      </label>
+      {children}
+      {error && (
+        <div className="flex items-center gap-1 text-xs text-brand-red-500 mt-1.5">
+          <AlertCircle size={12} /> {error}
+        </div>
+      )}
+      {hint && !error && <p className="text-xs text-neutral-500 mt-1.5">{hint}</p>}
+    </div>
+  );
+}
+
 export default function AddProduct() {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
@@ -78,21 +96,6 @@ export default function AddProduct() {
       setSaving(false);
     }
   };
-
-  const Field = ({ label, required, error, hint, children }) => (
-    <div>
-      <label className="label">
-        {label} {required && <span className="text-brand-red-500">*</span>}
-      </label>
-      {children}
-      {error && (
-        <div className="flex items-center gap-1 text-xs text-brand-red-500 mt-1.5">
-          <AlertCircle size={12} /> {error}
-        </div>
-      )}
-      {hint && !error && <p className="text-xs text-neutral-500 mt-1.5">{hint}</p>}
-    </div>
-  );
 
   return (
     <div className="max-w-4xl mx-auto">
