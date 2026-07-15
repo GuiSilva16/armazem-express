@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle2, Copy, ArrowRight, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../lib/api';
 import Logo from '../components/Logo';
+import { useAuth } from '../context/AuthContext';
 
 export default function PaymentSuccess() {
   const [params] = useSearchParams();
@@ -11,6 +12,21 @@ export default function PaymentSuccess() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [entering, setEntering] = useState(false);
+  const { login, logout } = useAuth();
+  const navigate = useNavigate();
+
+  // Entra diretamente na conta acabada de criar (termina qualquer sessão anterior)
+  const enterDashboard = async () => {
+    setEntering(true);
+    try {
+      await login(data.credentials.email, data.credentials.password, true);
+      navigate('/app');
+    } catch {
+      logout();
+      navigate('/login');
+    }
+  };
 
   useEffect(() => {
     if (!sessionId) {
@@ -117,9 +133,9 @@ export default function PaymentSuccess() {
               </p>
             </div>
 
-            <Link to="/login" className="btn-primary w-full mt-6 justify-center">
-              Entrar no painel <ArrowRight size={18} />
-            </Link>
+            <button onClick={enterDashboard} disabled={entering} className="btn-primary w-full mt-6 justify-center">
+              {entering ? 'A entrar...' : <>Entrar no painel <ArrowRight size={18} /></>}
+            </button>
           </>
         )}
 
