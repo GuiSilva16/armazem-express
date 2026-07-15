@@ -430,9 +430,28 @@ router.post('/:id/status', authenticate, (req, res) => {
       return res.status(404).json({ error: 'Encomenda não encontrada' });
     }
 
-    db.prepare(
-      'UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?'
-    ).run(status, req.params.id);
+    // Ao cancelar, repõe o stock dos produtos (que foi descontado na criação da encomenda).
+    // Só repõe se ainda não estava cancelada/devolvida, para não repor duas vezes.
+    const shouldRestock =
+      status === 'cancelled' && order.status !== 'cancelled' && order.status !== 'returned';
+
+    const applyChange = db.transaction(() => {
+      db.prepare('UPDATE orders SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+        .run(status, req.params.id);
+
+      if (shouldRestock) {
+        const items = db.prepare('SELECT * FROM order_items WHERE order_id = ?').all(order.id);
+        for (const it of items) {
+          db.prepare('UPDATE products SET quantity = quantity + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+            .run(it.quantity, it.product_id);
+          db.prepare(
+            `INSERT INTO stock_movements (company_id, product_id, type, quantity, reason, user_id)
+             VALUES (?, ?, 'add', ?, ?, ?)`
+          ).run(req.user.company_id, it.product_id, it.quantity, `Cancelamento (${order.tracking_number})`, req.user.id);
+        }
+      }
+    });
+    applyChange();
 
     const locationMap = {
       pending: 'Armazém Central',
