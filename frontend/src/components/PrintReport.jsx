@@ -37,8 +37,8 @@ export default function PrintReport({ title, subtitle, columns, rows, summary = 
           </div>
         </div>
         <div className="text-right text-sm text-black/70">
-          <div>{now.toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-          <div>{now.toLocaleTimeString('pt-PT')}</div>
+          <div>{now.toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon', day: '2-digit', month: 'long', year: 'numeric' })}</div>
+          <div>{now.toLocaleTimeString('pt-PT', { timeZone: 'Europe/Lisbon' })}</div>
         </div>
       </div>
 
@@ -100,7 +100,7 @@ export default function PrintReport({ title, subtitle, columns, rows, summary = 
       )}
 
       <div className="text-[10px] text-black/50 border-t border-black/20 pt-2 mt-4">
-        Armazém Express · Relatório gerado em {now.toLocaleString('pt-PT')}
+        Armazém Express · Relatório gerado em {now.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}
       </div>
     </div>
   );

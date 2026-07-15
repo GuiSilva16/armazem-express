@@ -219,7 +219,7 @@ export default function Dashboard() {
           <div className="relative mt-3 text-xs text-white/60">
             <span className="inline-flex items-center gap-1.5">
               <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-              Em tempo real · atualizado {lastUpdate.toLocaleTimeString('pt-PT')}
+              Em tempo real · atualizado {lastUpdate.toLocaleTimeString('pt-PT', { timeZone: 'Europe/Lisbon' })}
             </span>
           </div>
         )}
@@ -717,8 +717,8 @@ export default function Dashboard() {
           <div className="text-sm">{user?.companyName} · Plano {plan?.name || '-'}</div>
         </div>
         <div className="text-right text-sm">
-          <div>{new Date().toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-          <div>{new Date().toLocaleTimeString('pt-PT')}</div>
+          <div>{new Date().toLocaleDateString('pt-PT', { timeZone: 'Europe/Lisbon', day: '2-digit', month: 'long', year: 'numeric' })}</div>
+          <div>{new Date().toLocaleTimeString('pt-PT', { timeZone: 'Europe/Lisbon' })}</div>
         </div>
       </div>
 
@@ -798,7 +798,7 @@ export default function Dashboard() {
       )}
 
       <div className="text-[10px] text-black/50 border-t border-black/20 pt-2 mt-6">
-        Armazém Express · Relatório gerado automaticamente · {new Date().toLocaleString('pt-PT')}
+        Armazém Express · Relatório gerado automaticamente · {new Date().toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}
       </div>
     </div>
     </>
