@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, Search, Filter, Package, Trash2, Eye, Edit3, MapPin, Download, Printer, ClipboardList, QrCode, Upload, FileUp, CheckCircle2, AlertTriangle, Star, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, Filter, Package, Trash2, Eye, Edit3, MapPin, Download, Printer, ClipboardList, QrCode, Upload, FileUp, CheckCircle2, AlertTriangle, Star, ArrowUp, ArrowDown, ArrowUpDown, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PageHeader, StatusBadge, LoadingSpinner, EmptyState, Modal } from '../components/ui';
 import PrintReport from '../components/PrintReport';
@@ -366,8 +366,16 @@ export default function Stock() {
             ]}
           />
         </div>
-        <div className="mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800">
+        <div className="mt-3 pt-3 border-t border-neutral-100 dark:border-neutral-800 flex flex-wrap items-center justify-between gap-3">
           <DateRange from={dateFrom} to={dateTo} onChange={(f, t) => { setDateFrom(f); setDateTo(t); }} />
+          {(search || category !== 'all' || status !== 'all' || dateFrom || dateTo) && (
+            <button
+              onClick={() => { setSearch(''); setCategory('all'); setStatus('all'); setDateFrom(''); setDateTo(''); }}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-neutral-500 hover:text-brand-red-500 transition"
+            >
+              <X size={15} /> Limpar filtros
+            </button>
+          )}
         </div>
       </div>
 
