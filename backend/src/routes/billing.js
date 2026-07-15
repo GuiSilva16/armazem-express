@@ -5,6 +5,7 @@ import db from '../database/db.js';
 import { authenticate } from '../middleware/auth.js';
 import { generateStrongPassword } from '../utils/generators.js';
 import { isValidEmail, isValidName } from '../utils/validators.js';
+import { sendEmail, isEmailConfigured, welcomeCredentialsEmail } from '../utils/email.js';
 
 const router = express.Router();
 
@@ -425,6 +426,19 @@ async function handleNewSubscription(session, meta) {
     `INSERT OR REPLACE INTO checkout_credentials (session_id, email, password, company_name, plan_name, created_at)
      VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`
   ).run(session.id, email, generatedPassword, companyName, plan.name);
+
+  // Envia email de boas-vindas com as credenciais
+  if (isEmailConfigured()) {
+    try {
+      const mail = welcomeCredentialsEmail({
+        email, password: generatedPassword, companyName, planName: plan.name,
+        loginUrl: `${FRONTEND_URL}/login`
+      });
+      await sendEmail({ to: email, ...mail });
+    } catch (e) {
+      console.error('Erro ao enviar email de boas-vindas:', e.message);
+    }
+  }
 }
 
 async function handleAttachToExistingCompany(session, meta) {

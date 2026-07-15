@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, CreditCard, Palette, Package, Users, CheckCircle2, Sun, Moon, Sparkles, ArrowUpCircle, ArrowDownCircle, Check, FileText, ExternalLink, Download } from 'lucide-react';
+import { Building2, CreditCard, Palette, Package, Users, CheckCircle2, Sun, Moon, Sparkles, ArrowUpCircle, ArrowDownCircle, Check, FileText, ExternalLink, Download, Lock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PageHeader, LoadingSpinner, Modal } from '../components/ui';
 import api from '../lib/api';
@@ -82,6 +82,24 @@ export default function Settings() {
       toast.error(err.response?.data?.error || 'Erro ao guardar');
     } finally {
       setSavingCompany(false);
+    }
+  };
+
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '', loading: false });
+  const changePassword = async (e) => {
+    e.preventDefault();
+    if (pwForm.next !== pwForm.confirm) {
+      toast.error('A nova palavra-passe e a confirmação não coincidem');
+      return;
+    }
+    setPwForm((f) => ({ ...f, loading: true }));
+    try {
+      await api.post('/auth/change-password', { currentPassword: pwForm.current, newPassword: pwForm.next });
+      toast.success('Palavra-passe alterada com sucesso');
+      setPwForm({ current: '', next: '', confirm: '', loading: false });
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Erro ao alterar a palavra-passe');
+      setPwForm((f) => ({ ...f, loading: false }));
     }
   };
 
@@ -327,6 +345,42 @@ export default function Settings() {
             )}
           </motion.div>
         )}
+
+        {/* Segurança — alterar palavra-passe */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.19 }}
+          className="card p-6 lg:col-span-3">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-10 w-10 rounded-xl bg-neutral-900 dark:bg-white dark:text-neutral-900 text-white flex items-center justify-center">
+              <Lock size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold">Segurança</h3>
+              <p className="text-xs text-neutral-500">Alterar a sua palavra-passe.</p>
+            </div>
+          </div>
+          <form onSubmit={changePassword} className="grid sm:grid-cols-3 gap-3 items-end">
+            <div>
+              <label className="label">Palavra-passe atual</label>
+              <input type="password" required className="input" value={pwForm.current}
+                onChange={(e) => setPwForm((f) => ({ ...f, current: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label">Nova palavra-passe</label>
+              <input type="password" required className="input" placeholder="Mín. 8, maiúscula, número, símbolo"
+                value={pwForm.next} onChange={(e) => setPwForm((f) => ({ ...f, next: e.target.value }))} />
+            </div>
+            <div>
+              <label className="label">Confirmar nova</label>
+              <input type="password" required className="input" value={pwForm.confirm}
+                onChange={(e) => setPwForm((f) => ({ ...f, confirm: e.target.value }))} />
+            </div>
+            <div className="sm:col-span-3 flex justify-end">
+              <button type="submit" disabled={pwForm.loading} className="btn-primary !py-2 !px-5">
+                {pwForm.loading ? 'A alterar...' : 'Alterar palavra-passe'}
+              </button>
+            </div>
+          </form>
+        </motion.div>
 
         {/* Aparência */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}

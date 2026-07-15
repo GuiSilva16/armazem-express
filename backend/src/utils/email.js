@@ -70,3 +70,29 @@ export function orderTrackingEmail(order, trackUrl) {
   </div>`;
   return { subject: `A sua encomenda ${order.tracking_number} · Armazém Express`, text, html };
 }
+
+/**
+ * Template do email de boas-vindas com as credenciais de acesso.
+ */
+export function welcomeCredentialsEmail({ email, password, companyName, planName, loginUrl }) {
+  const text = `Bem-vindo ao Armazém Express, ${companyName}!\n\nA sua conta (plano ${planName}) está ativa.\n\nEmail: ${email}\nPalavra-passe: ${password}\n\nPor segurança, altere a palavra-passe após o primeiro acesso (Definições > Segurança).\n\nEntrar: ${loginUrl}`;
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+    <h2 style="color:#e11d2a;margin:0 0 8px">Armazém Express</h2>
+    <p>Bem-vindo, <strong>${companyName}</strong>! 🎉</p>
+    <p>A sua conta (plano <strong>${planName}</strong>) está ativa. Estas são as suas credenciais de acesso:</p>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;font-size:14px">
+      <div>Email: <strong>${email}</strong></div>
+      <div style="margin-top:6px">Palavra-passe: <strong style="font-family:monospace;font-size:16px">${password}</strong></div>
+    </div>
+    <p style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px 14px;font-size:13px;color:#9a3412">
+      ⚠️ Por segurança, <strong>altere a palavra-passe</strong> após o primeiro acesso, em <strong>Definições &gt; Segurança</strong>.
+    </p>
+    <p style="text-align:center;margin:24px 0">
+      <a href="${loginUrl}" style="background:#e11d2a;color:#fff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:bold;display:inline-block">Entrar no painel</a>
+    </p>
+    <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0">
+    <p style="font-size:12px;color:#94a3b8">Guarde este email num local seguro. Armazém Express.</p>
+  </div>`;
+  return { subject: 'Bem-vindo ao Armazém Express — dados de acesso', text, html };
+}

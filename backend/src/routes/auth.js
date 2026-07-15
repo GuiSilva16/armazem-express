@@ -6,7 +6,7 @@ import db from '../database/db.js';
 import { authenticate } from '../middleware/auth.js';
 import { generateStrongPassword } from '../utils/generators.js';
 import { isValidEmail, isValidName, isStrongPassword } from '../utils/validators.js';
-import { sendEmail, isEmailConfigured, passwordResetEmail } from '../utils/email.js';
+import { sendEmail, isEmailConfigured, passwordResetEmail, welcomeCredentialsEmail } from '../utils/email.js';
 
 const router = express.Router();
 
@@ -68,7 +68,7 @@ router.get('/plans', (req, res) => {
  * Processa subscrição fictícia e cria empresa + conta admin
  * Body: { companyName, email, planId }
  */
-router.post('/subscribe', (req, res) => {
+router.post('/subscribe', async (req, res) => {
   try {
     const { companyName, email, planId } = req.body;
 
@@ -169,6 +169,22 @@ router.post('/subscribe', (req, res) => {
     });
 
     trx();
+
+    // Envia email de boas-vindas com as credenciais
+    if (isEmailConfigured()) {
+      try {
+        const mail = welcomeCredentialsEmail({
+          email: email.toLowerCase().trim(),
+          password: generatedPassword,
+          companyName: companyName.trim(),
+          planName: plan.name,
+          loginUrl: `${FRONTEND_URL}/login`
+        });
+        await sendEmail({ to: email.toLowerCase().trim(), ...mail });
+      } catch (e) {
+        console.error('Erro ao enviar email de boas-vindas:', e.message);
+      }
+    }
 
     res.status(201).json({
       message: 'Subscrição ativada com sucesso!',
@@ -344,6 +360,34 @@ router.post('/reset-password', (req, res) => {
   } catch (error) {
     console.error('Erro no reset-password:', error);
     res.status(500).json({ error: 'Erro ao redefinir a palavra-passe' });
+  }
+});
+
+/**
+ * POST /api/auth/change-password
+ * Altera a própria palavra-passe (autenticado). Body: { currentPassword, newPassword }
+ */
+router.post('/change-password', authenticate, (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Preencha a palavra-passe atual e a nova' });
+    }
+    if (!isStrongPassword(newPassword)) {
+      return res.status(400).json({
+        error: 'Palavra-passe fraca: mín. 8 caracteres, com maiúscula, minúscula, número e símbolo.'
+      });
+    }
+    const user = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user.id);
+    if (!user || !bcrypt.compareSync(currentPassword, user.password_hash)) {
+      return res.status(401).json({ error: 'A palavra-passe atual está incorreta' });
+    }
+    const hash = bcrypt.hashSync(newPassword, 10);
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, req.user.id);
+    res.json({ success: true, message: 'Palavra-passe alterada com sucesso' });
+  } catch (error) {
+    console.error('Erro ao alterar palavra-passe:', error);
+    res.status(500).json({ error: 'Erro ao alterar a palavra-passe' });
   }
 });
 

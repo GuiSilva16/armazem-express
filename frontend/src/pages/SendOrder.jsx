@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, User, MapPin, Phone, Mail, Package,
@@ -12,6 +12,7 @@ import { formatCurrency } from '../lib/format';
 
 export default function SendOrder() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
   const [productSearch, setProductSearch] = useState('');
   const [cart, setCart] = useState([]);
@@ -30,6 +31,20 @@ export default function SendOrder() {
   useEffect(() => {
     api.get('/products').then(({ data }) => setProducts(data.filter((p) => p.quantity > 0)));
   }, []);
+
+  // Pré-seleciona um produto vindo do stock (?product=id)
+  useEffect(() => {
+    const pid = searchParams.get('product');
+    if (!pid || products.length === 0) return;
+    const p = products.find((x) => String(x.id) === String(pid));
+    if (p) {
+      setCart((prev) =>
+        prev.some((c) => c.product_id === p.id)
+          ? prev
+          : [...prev, { product_id: p.id, product: p, quantity: 1 }]
+      );
+    }
+  }, [products]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = products.filter((p) => {
     if (!productSearch) return true;

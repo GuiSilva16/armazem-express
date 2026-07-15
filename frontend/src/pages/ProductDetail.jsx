@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft, Package, MapPin, QrCode, Trash2, Plus, Minus,
-  History, Edit3, Save, X, DollarSign, AlertTriangle, Printer
+  History, Edit3, Save, X, DollarSign, AlertTriangle, Printer, Send
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { LoadingSpinner, StatusBadge, Modal } from '../components/ui';
@@ -288,6 +288,14 @@ export default function ProductDetail() {
                 <Minus size={16} /> Remover stock
               </button>
             </div>
+            {product.quantity > 0 && (
+              <button
+                onClick={() => navigate(`/app/orders/new?product=${product.id}`)}
+                className="w-full mt-2 inline-flex items-center justify-center gap-2 py-2.5 border-2 border-brand-red-200 dark:border-brand-red-900 text-brand-red-500 rounded-xl font-semibold hover:bg-brand-red-50 dark:hover:bg-brand-red-900/20 transition"
+              >
+                <Send size={16} /> Criar encomenda com este produto
+              </button>
+            )}
           </div>
 
           {/* Detalhes */}
