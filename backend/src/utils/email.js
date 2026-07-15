@@ -96,3 +96,31 @@ export function welcomeCredentialsEmail({ email, password, companyName, planName
   </div>`;
   return { subject: 'Bem-vindo ao Armazém Express — dados de acesso', text, html };
 }
+
+/**
+ * Template do email de confirmação de mudança de plano.
+ */
+export function planChangedEmail({ companyName, oldPlanName, newPlanName, newPrice, isUpgrade }) {
+  const acao = isUpgrade ? 'Upgrade' : (isUpgrade === false ? 'Downgrade' : 'Alteração de plano');
+  const nota = isUpgrade
+    ? 'A diferença é cobrada proporcionalmente aos dias restantes do ciclo.'
+    : (isUpgrade === false
+        ? 'O valor em excesso fica como crédito, aplicado na próxima fatura.'
+        : 'A alteração é aplicada proporcionalmente ao ciclo.');
+  const text = `${acao} de plano confirmada.\n\n${companyName}: ${oldPlanName} -> ${newPlanName} (${newPrice}€/mês).\n\n${nota}\n\nObrigado — Armazém Express`;
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+    <h2 style="color:#e11d2a;margin:0 0 8px">Armazém Express</h2>
+    <p><strong>${acao} de plano confirmada</strong> para <strong>${companyName}</strong>.</p>
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;font-size:15px;text-align:center">
+      <span style="color:#64748b">${oldPlanName}</span>
+      <span style="margin:0 8px">→</span>
+      <strong style="color:#e11d2a;font-size:17px">${newPlanName}</strong>
+      <div style="color:#64748b;font-size:13px;margin-top:6px">${newPrice}€ / mês</div>
+    </div>
+    <p style="font-size:13px;color:#64748b;margin-top:14px">${nota}</p>
+    <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0">
+    <p style="font-size:12px;color:#94a3b8">Pode consultar as faturas em Definições &gt; Faturação. Armazém Express.</p>
+  </div>`;
+  return { subject: `Plano alterado para ${newPlanName} · Armazém Express`, text, html };
+}

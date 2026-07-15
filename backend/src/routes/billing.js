@@ -5,7 +5,7 @@ import db from '../database/db.js';
 import { authenticate } from '../middleware/auth.js';
 import { generateStrongPassword } from '../utils/generators.js';
 import { isValidEmail, isValidName } from '../utils/validators.js';
-import { sendEmail, isEmailConfigured, welcomeCredentialsEmail } from '../utils/email.js';
+import { sendEmail, isEmailConfigured, welcomeCredentialsEmail, planChangedEmail } from '../utils/email.js';
 
 const router = express.Router();
 
@@ -185,6 +185,9 @@ router.post('/change-plan', authenticate, async (req, res) => {
       return res.json({ checkoutUrl: session.url });
     }
 
+    // Plano anterior (para o email de confirmação)
+    const oldPlan = db.prepare('SELECT name, price FROM plans WHERE id = ?').get(company.plan_id);
+
     // Caso normal: atualiza a subscrição existente com proration
     const subscription = await stripe.subscriptions.retrieve(company.stripe_subscription_id);
     const itemId = subscription.items.data[0].id;
@@ -197,6 +200,23 @@ router.post('/change-plan', authenticate, async (req, res) => {
 
     // Atualiza local (o webhook também atualiza, mas adiantamos para UX)
     db.prepare('UPDATE companies SET plan_id = ? WHERE id = ?').run(planId, company.id);
+
+    // Email de confirmação da mudança de plano
+    if (isEmailConfigured() && company.email && oldPlan) {
+      try {
+        const isUpgrade = plan.price > oldPlan.price ? true : (plan.price < oldPlan.price ? false : null);
+        const mail = planChangedEmail({
+          companyName: company.name,
+          oldPlanName: oldPlan.name,
+          newPlanName: plan.name,
+          newPrice: plan.price,
+          isUpgrade
+        });
+        await sendEmail({ to: company.email, ...mail });
+      } catch (e) {
+        console.error('Erro ao enviar email de mudança de plano:', e.message);
+      }
+    }
 
     res.json({
       success: true,
