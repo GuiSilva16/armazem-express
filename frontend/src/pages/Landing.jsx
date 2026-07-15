@@ -81,8 +81,19 @@ export default function Landing() {
   const shadowAlpha = useTransform(scrollY, navRange, [0, 0.1]);
   const navShadow = useMotionTemplate`0 12px 32px rgba(0,0,0,${shadowAlpha})`;
 
+  // Carrega os planos com tolerância ao "cold start" do backend (Render adormece).
   useEffect(() => {
-    api.get('/auth/plans').then(({ data }) => setPlans(data));
+    let cancelled = false;
+    const fetchPlans = async (attempt = 0) => {
+      try {
+        const { data } = await api.get('/auth/plans', { timeout: 60000 });
+        if (!cancelled) setPlans(data);
+      } catch (err) {
+        if (!cancelled && attempt < 4) setTimeout(() => fetchPlans(attempt + 1), 2500);
+      }
+    };
+    fetchPlans();
+    return () => { cancelled = true; };
   }, []);
 
   // Faz scroll para a secção indicada no URL (ex.: /#pricing vindo do login)
@@ -831,6 +842,18 @@ export default function Landing() {
               Assinatura mensal. Cancela quando quiser.
             </p>
           </div>
+
+          {plans.length === 0 && (
+            <div className="text-center py-12">
+              <div className="inline-flex items-center gap-3 text-neutral-500">
+                <span className="h-5 w-5 rounded-full border-2 border-brand-red-500 border-t-transparent animate-spin" />
+                A carregar planos…
+              </div>
+              <p className="text-xs text-neutral-400 mt-3 max-w-sm mx-auto">
+                O servidor pode demorar alguns segundos a arrancar na primeira visita.
+              </p>
+            </div>
+          )}
 
           <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {plans.map((plan, i) => {
