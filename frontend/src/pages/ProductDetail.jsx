@@ -8,7 +8,7 @@ import {
 import toast from 'react-hot-toast';
 import { LoadingSpinner, StatusBadge, Modal } from '../components/ui';
 import api from '../lib/api';
-import { formatCurrency, getStockStatus, formatDate, timeAgo } from '../lib/format';
+import { formatCurrency, getStockStatus, getExpiryStatus, formatDate, timeAgo } from '../lib/format';
 import { useAuth } from '../context/AuthContext';
 
 export default function ProductDetail() {
@@ -338,7 +338,15 @@ export default function ProductDetail() {
                 {editMode ? (
                   <input type="date" className="input" value={editForm.expiry_date} onChange={(e) => setEditForm({ ...editForm, expiry_date: e.target.value })} />
                 ) : (
-                  <dd className="font-bold">{product.expiry_date || '—'}</dd>
+                  <dd className="font-bold flex items-center gap-2">
+                    {product.expiry_date || '—'}
+                    {(() => {
+                      const ex = getExpiryStatus(product);
+                      if (ex?.expired) return <span className="chip bg-brand-red-100 text-brand-red-700 dark:bg-brand-red-900/30 dark:text-brand-red-400">Expirado</span>;
+                      if (ex?.soon) return <span className="chip bg-brand-yellow-100 text-brand-yellow-700 dark:bg-brand-yellow-900/30 dark:text-brand-yellow-400">Expira em {ex.days}d</span>;
+                      return null;
+                    })()}
+                  </dd>
                 )}
               </div>
               <div>

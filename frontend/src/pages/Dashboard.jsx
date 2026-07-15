@@ -132,9 +132,14 @@ export default function Dashboard() {
       text: `${reorderSuggestions.length} produto(s) sugeridos para reposição`,
       action: 'Repor', to: '/app/purchasing'
     },
-    expiringProducts.length > 0 && {
+    expiringProducts.filter((p) => p.days_left < 0).length > 0 && {
+      icon: XCircle, tone: 'red',
+      text: `${expiringProducts.filter((p) => p.days_left < 0).length} produto(s) fora da validade`,
+      action: 'Ver', to: '/app/stock?status=expiring'
+    },
+    expiringProducts.filter((p) => p.days_left >= 0).length > 0 && {
       icon: Clock, tone: 'yellow',
-      text: `${expiringProducts.length} produto(s) a expirar nos próximos 30 dias`,
+      text: `${expiringProducts.filter((p) => p.days_left >= 0).length} produto(s) a expirar em breve`,
       action: 'Ver', to: '/app/stock?status=expiring'
     }
   ].filter(Boolean);

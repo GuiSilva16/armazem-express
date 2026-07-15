@@ -8,7 +8,7 @@ import {
 import toast from 'react-hot-toast';
 import { PageHeader } from '../components/ui';
 import api from '../lib/api';
-import { formatCurrency } from '../lib/format';
+import { formatCurrency, getExpiryStatus } from '../lib/format';
 
 export default function SendOrder() {
   const navigate = useNavigate();
@@ -110,6 +110,14 @@ export default function SendOrder() {
     if (!validate()) {
       toast.error('Corrija os campos destacados');
       return;
+    }
+    // Aviso se algum produto do carrinho estiver fora da validade
+    const expired = cart.filter((c) => getExpiryStatus(c.product)?.expired);
+    if (expired.length > 0) {
+      const nomes = expired.map((c) => c.product.name).join(', ');
+      if (!window.confirm(`Atenção: ${nomes} ${expired.length === 1 ? 'está' : 'estão'} fora da validade. Quer mesmo criar esta encomenda?`)) {
+        return;
+      }
     }
     setSaving(true);
     try {

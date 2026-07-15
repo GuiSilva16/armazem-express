@@ -8,7 +8,7 @@ import PrintReport from '../components/PrintReport';
 import DateRange, { filterByRange } from '../components/DateRange';
 import Select from '../components/Select';
 import api from '../lib/api';
-import { formatCurrency, getStockStatus } from '../lib/format';
+import { formatCurrency, getStockStatus, getExpiryStatus } from '../lib/format';
 import { parseProductsCSV, CSV_TEMPLATE } from '../lib/csv';
 import { useAuth } from '../context/AuthContext';
 import { planHasFeature } from '../lib/planFeatures';
@@ -433,6 +433,7 @@ export default function Stock() {
                       <div className="min-w-0">
                         <div className="font-bold truncate">{p.name}</div>
                         <div className="text-xs text-neutral-500 font-mono truncate">{p.sku}</div>
+                        {getExpiryStatus(p)?.expired && <span className="inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-red-100 text-brand-red-700 dark:bg-brand-red-900/30 dark:text-brand-red-400">Expirado</span>}
                       </div>
                     </div>
                     <StatusBadge status={s.key} />
@@ -489,7 +490,10 @@ export default function Stock() {
                               <Star size={15} className={pinned.has(p.id) ? 'text-brand-yellow-500 fill-brand-yellow-500' : 'text-neutral-300 dark:text-neutral-600 hover:text-brand-yellow-500'} />
                             </button>
                             <div className="min-w-0">
-                              <div className="font-semibold">{p.name}</div>
+                              <div className="font-semibold flex items-center gap-2">
+                                {p.name}
+                                {getExpiryStatus(p)?.expired && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-red-100 text-brand-red-700 dark:bg-brand-red-900/30 dark:text-brand-red-400">Expirado</span>}
+                              </div>
                               <div className="text-xs text-neutral-500 font-mono">{p.sku}</div>
                             </div>
                           </div>

@@ -58,6 +58,17 @@ export const timeAgo = (dateStr) => {
   return formatDateShort(dateStr);
 };
 
+// Estado de validade de um produto: expirado, a expirar (<=30 dias) ou ok.
+export const getExpiryStatus = (product) => {
+  if (!product?.expiry_date) return null;
+  const exp = parseDBDate(product.expiry_date);
+  if (!exp || isNaN(exp.getTime())) return null;
+  const days = Math.floor((exp.getTime() - Date.now()) / 86400000);
+  if (days < 0) return { expired: true, soon: false, days };
+  if (days <= 30) return { expired: false, soon: true, days };
+  return { expired: false, soon: false, days };
+};
+
 export const getStockStatus = (product) => {
   if (product.quantity === 0) return { label: 'Sem Stock', color: 'red', key: 'out_of_stock' };
   if (product.quantity <= product.min_stock)
