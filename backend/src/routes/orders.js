@@ -2,6 +2,7 @@ import express from 'express';
 import db from '../database/db.js';
 import { authenticate, requireFeature } from '../middleware/auth.js';
 import { generateTrackingNumber } from '../utils/generators.js';
+import { sendEmail, isEmailConfigured, orderTrackingEmail } from '../utils/email.js';
 import {
   isValidEmail,
   isValidName,
@@ -9,6 +10,8 @@ import {
   isValidPostalCodePT,
   isPositiveInteger
 } from '../utils/validators.js';
+
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 const router = express.Router();
 
@@ -230,7 +233,7 @@ router.get('/tracking/:code', authenticate, (req, res) => {
  * Criar nova encomenda
  * Body: { recipient*, items: [{product_id, quantity}] }
  */
-router.post('/', authenticate, (req, res) => {
+router.post('/', authenticate, async (req, res) => {
   try {
     const {
       recipient_name,
@@ -387,6 +390,18 @@ router.post('/', authenticate, (req, res) => {
 
     const orderId = createOrder();
     const created = db.prepare('SELECT * FROM orders WHERE id = ?').get(orderId);
+
+    // Envia email ao destinatário com o link de rastreio (se tiver email e o SMTP estiver configurado)
+    if (created.recipient_email && isEmailConfigured()) {
+      try {
+        const trackUrl = `${FRONTEND_URL}/track/${created.tracking_number}`;
+        const mail = orderTrackingEmail(created, trackUrl);
+        await sendEmail({ to: created.recipient_email, ...mail });
+      } catch (mailErr) {
+        console.error('Erro ao enviar email de rastreio:', mailErr.message);
+      }
+    }
+
     res.status(201).json(created);
   } catch (error) {
     console.error('Erro ao criar encomenda:', error);

@@ -46,3 +46,27 @@ export function passwordResetEmail(resetUrl) {
   </div>`;
   return { subject: 'Recuperação de palavra-passe · Armazém Express', text, html };
 }
+
+/**
+ * Template do email de confirmação de encomenda com link de rastreio.
+ */
+export function orderTrackingEmail(order, trackUrl) {
+  const name = order.recipient_name || 'Cliente';
+  const text = `Olá ${name},\n\nA sua encomenda foi registada.\nNúmero de rastreio: ${order.tracking_number}\n\nAcompanhe aqui:\n${trackUrl}\n\nObrigado — Armazém Express`;
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#0f172a">
+    <h2 style="color:#e11d2a;margin:0 0 8px">Armazém Express</h2>
+    <p>Olá <strong>${name}</strong>,</p>
+    <p>A sua encomenda foi registada e está a ser preparada. 📦</p>
+    <p style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px 16px;font-size:15px">
+      Número de rastreio:<br><strong style="font-family:monospace;font-size:17px">${order.tracking_number}</strong>
+    </p>
+    <p style="text-align:center;margin:28px 0">
+      <a href="${trackUrl}" style="background:#e11d2a;color:#fff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:bold;display:inline-block">Acompanhar encomenda</a>
+    </p>
+    <p style="font-size:13px;color:#64748b">Se o botão não funcionar, copie este endereço:<br><a href="${trackUrl}">${trackUrl}</a></p>
+    <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0">
+    <p style="font-size:12px;color:#94a3b8">Obrigado por comprar connosco — Armazém Express.</p>
+  </div>`;
+  return { subject: `A sua encomenda ${order.tracking_number} · Armazém Express`, text, html };
+}
