@@ -85,6 +85,15 @@ export default function Landing() {
     api.get('/auth/plans').then(({ data }) => setPlans(data));
   }, []);
 
+  // Faz scroll para a secção indicada no URL (ex.: /#pricing vindo do login)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.length > 1) {
+      const el = document.querySelector(hash);
+      if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 300);
+    }
+  }, []);
+
   const handleSubscribe = async (e) => {
     e.preventDefault();
     if (!selectedPlan) return;
