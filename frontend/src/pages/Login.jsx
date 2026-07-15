@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Logo from '../components/Logo';
+import api from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -16,6 +17,20 @@ export default function Login() {
   });
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Recuperação de palavra-passe (pede o email; o link chega por email)
+  const [forgot, setForgot] = useState({ open: false, email: '', loading: false, sent: false });
+  const submitForgot = async (e) => {
+    e.preventDefault();
+    setForgot((f) => ({ ...f, loading: true }));
+    try {
+      await api.post('/auth/forgot-password', { email: forgot.email.trim().toLowerCase() });
+      setForgot((f) => ({ ...f, loading: false, sent: true }));
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Erro ao processar o pedido');
+      setForgot((f) => ({ ...f, loading: false }));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -155,17 +170,24 @@ export default function Login() {
               </div>
             </div>
 
-            <label className="flex items-center gap-2 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => setRemember(e.target.checked)}
-                className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700 text-brand-red-500 focus:ring-brand-red-500 cursor-pointer"
-              />
-              <span className="text-sm text-neutral-600 dark:text-neutral-400">
-                Lembrar-me neste dispositivo
-              </span>
-            </label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={remember}
+                  onChange={(e) => setRemember(e.target.checked)}
+                  className="h-4 w-4 rounded border-neutral-300 dark:border-neutral-700 text-brand-red-500 focus:ring-brand-red-500 cursor-pointer"
+                />
+                <span className="text-sm text-neutral-600 dark:text-neutral-400">Lembrar-me</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setForgot({ open: true, email: form.email, loading: false, sent: false })}
+                className="text-sm font-semibold text-brand-red-500 hover:underline"
+              >
+                Esqueci-me da palavra-passe?
+              </button>
+            </div>
 
             <button type="submit" disabled={loading} className="w-full btn-primary">
               {loading ? 'A entrar...' : 'Entrar'}
@@ -203,6 +225,35 @@ export default function Login() {
           </div>
         </motion.div>
       </div>
+
+      {/* Modal: pedir link de recuperação por email */}
+      {forgot.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+          onClick={() => setForgot((f) => ({ ...f, open: false }))}>
+          <div className="bg-white dark:bg-neutral-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl border border-neutral-200 dark:border-neutral-800"
+            onClick={(e) => e.stopPropagation()}>
+            {forgot.sent ? (
+              <div className="text-center py-2">
+                <Mail size={40} className="text-brand-red-500 mx-auto mb-3" />
+                <h3 className="font-display text-xl font-bold mb-1">Verifique o seu email</h3>
+                <p className="text-sm text-neutral-500">Se existir uma conta com esse email, enviámos um link para redefinir a palavra-passe. O link é válido durante 1 hora.</p>
+                <button onClick={() => setForgot((f) => ({ ...f, open: false }))} className="btn-primary w-full mt-5">Fechar</button>
+              </div>
+            ) : (
+              <form onSubmit={submitForgot}>
+                <h3 className="font-display text-xl font-bold mb-1">Recuperar palavra-passe</h3>
+                <p className="text-sm text-neutral-500 mb-4">Introduza o seu email e enviaremos um link para redefinir a palavra-passe.</p>
+                <input type="email" required className="input" placeholder="o-seu@email.pt"
+                  value={forgot.email} onChange={(e) => setForgot((f) => ({ ...f, email: e.target.value }))} />
+                <div className="flex gap-2 justify-end mt-4">
+                  <button type="button" onClick={() => setForgot((f) => ({ ...f, open: false }))} className="btn-ghost">Cancelar</button>
+                  <button type="submit" disabled={forgot.loading} className="btn-primary">{forgot.loading ? 'A enviar...' : 'Enviar link'}</button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

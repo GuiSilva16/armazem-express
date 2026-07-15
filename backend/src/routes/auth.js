@@ -6,8 +6,11 @@ import db from '../database/db.js';
 import { authenticate } from '../middleware/auth.js';
 import { generateStrongPassword } from '../utils/generators.js';
 import { isValidEmail, isValidName, isStrongPassword } from '../utils/validators.js';
+import { sendEmail, isEmailConfigured, passwordResetEmail } from '../utils/email.js';
 
 const router = express.Router();
+
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 // ── Rate limiting do login (proteção contra força bruta, em memória) ──
 const loginAttempts = new Map(); // chave (ip+email) -> { count, firstAt }
@@ -256,16 +259,18 @@ router.post('/login', rateLimitLogin, (req, res) => {
  * se o email existe. Em desenvolvimento devolve o token para se poder testar o fluxo
  * (num sistema real seria enviado por email).
  */
-router.post('/forgot-password', (req, res) => {
+router.post('/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
     if (!email || !isValidEmail(email)) {
       return res.status(400).json({ error: 'Email inválido' });
     }
+    const cleanEmail = email.toLowerCase().trim();
     const user = db
       .prepare('SELECT id FROM users WHERE email = ? AND active = 1')
-      .get(email.toLowerCase().trim());
+      .get(cleanEmail);
 
+    // Resposta genérica (não revela se o email existe)
     const response = { message: 'Se o email existir, foi enviado um link de recuperação.' };
 
     if (user) {
@@ -279,10 +284,20 @@ router.post('/forgot-password', (req, res) => {
         'INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?, ?, ?)'
       ).run(user.id, tokenHash, expiresAt);
 
-      // Só fora de produção devolvemos o token (substitui o envio de email)
-      if (process.env.NODE_ENV !== 'production') {
+      const resetUrl = `${FRONTEND_URL}/reset-password?token=${token}`;
+
+      if (isEmailConfigured()) {
+        // Envia o email com o link de recuperação
+        try {
+          const mail = passwordResetEmail(resetUrl);
+          await sendEmail({ to: cleanEmail, ...mail });
+        } catch (mailErr) {
+          console.error('Erro ao enviar email de recuperação:', mailErr.message);
+        }
+      } else if (process.env.NODE_ENV !== 'production') {
+        // Sem SMTP configurado, em desenvolvimento devolve o token para testar
         response.devToken = token;
-        response.devNote = 'Em produção este token seria enviado por email.';
+        response.devNote = 'SMTP não configurado — token devolvido apenas em desenvolvimento.';
       }
     }
 
