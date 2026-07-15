@@ -111,8 +111,8 @@ A maioria dos endpoints exige **login**. O fluxo é:
 |---|---|---|---|
 | `GET` | `/api/auth/plans` | 🔓 | Lista os 3 planos (Starter, Business, Enterprise) |
 | `POST` | `/api/auth/login` | 🔓 | Login → devolve token + dados (limitado a 6 tentativas / 15 min) |
-| `POST` | `/api/auth/forgot-password` | 🔓 | Pede recuperação de palavra-passe (gera token, válido 1h) |
-| `POST` | `/api/auth/reset-password` | 🔓 | Define nova palavra-passe a partir de um token |
+| `POST` | `/api/auth/forgot-password` | 🔓 | Envia por email um link de recuperação (token válido 1h; via SMTP/nodemailer) |
+| `POST` | `/api/auth/reset-password` | 🔓 | Define nova palavra-passe a partir do token do link |
 | `POST` | `/api/auth/subscribe` | 🔓 | Subscrição direta (legado, antes do Stripe) |
 | `GET` | `/api/auth/me` | 🔐 | Dados do utilizador autenticado + plano + empresa |
 | `PUT` | `/api/auth/company` | 👑 | Atualiza dados da empresa (morada, NIF, logótipo) |

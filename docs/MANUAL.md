@@ -58,7 +58,7 @@ O **Armazém Express** é uma aplicação web que ajuda pequenas e médias empre
 
 > Na primeira entrada aparece um **ecrã de boas-vindas** com um resumo das funcionalidades.
 
-**Esqueceu-se da palavra-passe?** Clique em *"Esqueci-me da palavra-passe?"*, introduza o email e siga o link de recuperação para definir uma nova. Por segurança, o login bloqueia temporariamente após várias tentativas falhadas.
+**Esqueceu-se da palavra-passe?** Clique em *"Esqueci-me da palavra-passe?"* e introduza o email. Receberá **um email com um link** (válido durante 1 hora) que abre uma página para definir uma nova palavra-passe. Por segurança, o login bloqueia temporariamente após várias tentativas falhadas.
 
 ---
 
@@ -238,7 +238,7 @@ Permite ler o código QR de um produto através da **câmara do telemóvel/compu
 No alojamento gratuito, o servidor "adormece" após ~15 minutos sem uso. O primeiro acesso seguinte pode demorar ~50 segundos a responder. Depois fica rápido.
 
 **Esqueci-me da palavra-passe.**
-Contacta o administrador da empresa, que pode repor a conta.
+Na página de login, clica em *"Esqueci-me da palavra-passe?"* e introduz o teu email — recebes um link por email para definir uma nova. Em alternativa, o administrador da empresa também pode repor a conta.
 
 **Os dados de demonstração reaparecem.**
 No ambiente de demonstração, a base de dados é reposta com dados de exemplo quando o servidor reinicia.
