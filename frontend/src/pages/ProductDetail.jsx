@@ -108,7 +108,7 @@ export default function ProductDetail() {
   };
 
   const printLabel = (p) => {
-    const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=${encodeURIComponent(p.qr_code)}`;
+    const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=0&data=${encodeURIComponent(window.location.origin + '/p/' + p.qr_code)}`;
     const win = window.open('', '_blank', 'width=420,height=620');
     if (!win) {
       toast.error('Permita popups para imprimir etiquetas');
@@ -455,7 +455,7 @@ export default function ProductDetail() {
         <div className="text-center">
           <div className="bg-white p-6 rounded-xl inline-block">
             <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(product.qr_code)}`}
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(window.location.origin + '/p/' + product.qr_code)}`}
               alt="QR Code"
               className="w-60 h-60"
             />

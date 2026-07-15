@@ -192,7 +192,7 @@ export default function Stock() {
   const printLabels = () => {
     if (view.length === 0) { toast.error('Sem produtos para etiquetar'); return; }
     const labels = view.map((p) => {
-      const qr = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&margin=0&data=${encodeURIComponent(p.qr_code || p.sku)}`;
+      const qr = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&margin=0&data=${encodeURIComponent(window.location.origin + '/p/' + (p.qr_code || p.sku))}`;
       return `<div class="label">
         <img src="${qr}" alt="QR" />
         <div class="info">

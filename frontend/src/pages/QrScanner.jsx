@@ -77,9 +77,13 @@ export default function QrScanner() {
     }
   };
 
-  const lookupProduct = async (code) => {
+  const lookupProduct = async (raw) => {
     setLookingUp(true);
     try {
+      // O QR pode conter um link (.../p/CODIGO); extrai o código. Também aceita código puro.
+      let code = String(raw).trim();
+      const m = code.match(/\/p\/([^/?#]+)/);
+      if (m) code = decodeURIComponent(m[1]);
       const { data } = await api.get(`/products/qr/${encodeURIComponent(code)}`);
       setProduct(data);
       toast.success(`Produto identificado: ${data.name}`);

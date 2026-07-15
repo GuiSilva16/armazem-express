@@ -25,7 +25,9 @@ export default function Login() {
       localStorage.setItem('armazem_remember', String(remember));
       await login(form.email.trim().toLowerCase(), form.password, remember);
       toast.success('Bem-vindo de volta! 👋');
-      navigate('/app');
+      const redirect = sessionStorage.getItem('armazem_redirect');
+      sessionStorage.removeItem('armazem_redirect');
+      navigate(redirect || '/app');
     } catch (err) {
       toast.error(err.response?.data?.error || 'Erro ao fazer login');
     } finally {
