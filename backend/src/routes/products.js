@@ -564,6 +564,15 @@ router.delete('/:id', authenticate, requireAdmin, (req, res) => {
       return res.status(404).json({ error: 'Produto não encontrado' });
     }
 
+    // Não permitir eliminar produtos com histórico (preserva integridade das encomendas)
+    const inOrders = db.prepare('SELECT COUNT(*) c FROM order_items WHERE product_id = ?').get(req.params.id).c;
+    const inPurchases = db.prepare('SELECT COUNT(*) c FROM purchase_order_items WHERE product_id = ?').get(req.params.id).c;
+    if (inOrders > 0 || inPurchases > 0) {
+      return res.status(400).json({
+        error: `Não é possível eliminar "${product.name}": tem encomendas ou reposições associadas. Ajuste o stock para 0 em vez de eliminar.`
+      });
+    }
+
     db.prepare('DELETE FROM products WHERE id = ?').run(req.params.id);
     res.json({ message: 'Produto removido com sucesso', product });
   } catch (error) {

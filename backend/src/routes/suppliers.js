@@ -97,7 +97,9 @@ router.delete('/:id', authenticate, requireAdmin, (req, res) => {
       .get(req.params.id, req.user.company_id);
     if (!supplier) return res.status(404).json({ error: 'Fornecedor não encontrado' });
 
+    // Desassocia o fornecedor de produtos e de encomendas de compra antes de eliminar
     db.prepare('UPDATE products SET supplier_id = NULL WHERE supplier_id = ?').run(req.params.id);
+    db.prepare('UPDATE purchase_orders SET supplier_id = NULL WHERE supplier_id = ?').run(req.params.id);
     db.prepare('DELETE FROM suppliers WHERE id = ?').run(req.params.id);
     res.json({ success: true });
   } catch (error) {
