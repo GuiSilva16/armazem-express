@@ -84,6 +84,21 @@ export default function SendOrder() {
 
   const total = cart.reduce((sum, c) => sum + c.product.price * c.quantity, 0);
 
+  // Código postal → preenche a cidade automaticamente (GeoAPI.pt)
+  const [cpLoading, setCpLoading] = useState(false);
+  const handlePostalChange = async (raw) => {
+    const cp = formatPostal(raw);
+    setForm((f) => ({ ...f, recipient_postal_code: cp }));
+    if (/^\d{4}-\d{3}$/.test(cp)) {
+      setCpLoading(true);
+      try {
+        const { data } = await api.get(`/utils/postal/${cp}`);
+        if (data.city) setForm((f) => ({ ...f, recipient_city: data.city }));
+      } catch { /* silencioso — o utilizador pode preencher à mão */ }
+      finally { setCpLoading(false); }
+    }
+  };
+
   const validatePhone = (p) => {
     const c = p.replace(/\s+/g, '').replace(/^\+351/, '');
     return /^[23]\d{8}$/.test(c) || /^9[1236]\d{7}$/.test(c);
@@ -197,8 +212,8 @@ export default function SendOrder() {
                   <label className="label">Cód. postal *</label>
                   <input type="text" className={`input font-mono ${errors.recipient_postal_code ? 'border-brand-red-500' : ''}`}
                     placeholder="1200-456" maxLength={8} value={form.recipient_postal_code}
-                    onChange={(e) => setForm({ ...form, recipient_postal_code: formatPostal(e.target.value) })} />
-                  <Err m={errors.recipient_postal_code} />
+                    onChange={(e) => handlePostalChange(e.target.value)} />
+                  {cpLoading ? <p className="text-xs text-neutral-400 mt-1">A procurar cidade…</p> : <Err m={errors.recipient_postal_code} />}
                 </div>
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
