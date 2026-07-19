@@ -12,6 +12,7 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
 import { StatCard, LoadingSpinner, StatusBadge } from '../components/ui';
+import AiInsights from '../components/AiInsights';
 import api from '../lib/api';
 import { formatCurrency, timeAgo } from '../lib/format';
 import { useAuth } from '../context/AuthContext';
@@ -236,6 +237,9 @@ export default function Dashboard() {
           <StatCard key={s.label} {...s} index={i} />
         ))}
       </div>
+
+      {/* Insights com IA (opcional) */}
+      <AiInsights />
 
       {/* Saúde do Inventário + Ações Rápidas */}
       <div className="grid lg:grid-cols-3 gap-4">
