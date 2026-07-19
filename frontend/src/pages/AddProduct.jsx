@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Save, ArrowLeft, Package, Tag, MapPin, Hash, AlertCircle } from 'lucide-react';
+import { Save, ArrowLeft, Package, Tag, MapPin, Hash, AlertCircle, Barcode } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PageHeader } from '../components/ui';
 import Select from '../components/Select';
+import BarcodeScanModal from '../components/BarcodeScanModal';
 import api from '../lib/api';
 
 // Definido FORA do componente para não ser recriado a cada tecla (senão os campos perdem o foco)
@@ -32,6 +33,8 @@ export default function AddProduct() {
   const [newCat, setNewCat] = useState('');
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
+  const [scanOpen, setScanOpen] = useState(false);
+  const [bcLoading, setBcLoading] = useState(false);
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -51,6 +54,36 @@ export default function AddProduct() {
     api.get('/products/categories').then(({ data }) => setCategories(data));
     api.get('/suppliers').then(({ data }) => setSuppliers(data)).catch(() => {});
   }, []);
+
+  // Consulta o código de barras na Open Food Facts e pré-preenche nome/descrição
+  const lookupBarcode = async (code) => {
+    const c = (code || '').trim();
+    if (!c) return;
+    setBcLoading(true);
+    try {
+      const r = await fetch(
+        `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(c)}.json?fields=product_name,brands,categories`
+      );
+      const data = await r.json();
+      if (data.status === 1 && data.product && data.product.product_name) {
+        const p = data.product;
+        setForm((f) => ({
+          ...f,
+          name: p.product_name || f.name,
+          description: f.description || [p.brands, p.categories].filter(Boolean).join(' · ').slice(0, 200),
+          batch: f.batch || c
+        }));
+        toast.success(`Produto encontrado: ${p.product_name}`);
+      } else {
+        setForm((f) => ({ ...f, batch: f.batch || c }));
+        toast('Código não encontrado na base de dados. Guardei-o no lote — preencha o resto manualmente.', { icon: 'ℹ️' });
+      }
+    } catch {
+      toast.error('Erro ao consultar o código de barras');
+    } finally {
+      setBcLoading(false);
+    }
+  };
 
   const validate = () => {
     const e = {};
@@ -127,6 +160,15 @@ export default function AddProduct() {
               <h3 className="font-bold">Informação do Produto</h3>
               <p className="text-xs text-neutral-500">Dados principais</p>
             </div>
+            <button
+              type="button"
+              onClick={() => setScanOpen(true)}
+              disabled={bcLoading}
+              className="btn-ghost ml-auto !py-2 !px-3 text-sm disabled:opacity-50"
+              title="Ler um código de barras para preencher automaticamente"
+            >
+              <Barcode size={16} /> {bcLoading ? 'A consultar…' : 'Ler código de barras'}
+            </button>
           </div>
 
           <div className="space-y-4">
@@ -310,6 +352,12 @@ export default function AddProduct() {
           </button>
         </div>
       </motion.form>
+
+      <BarcodeScanModal
+        open={scanOpen}
+        onClose={() => setScanOpen(false)}
+        onDetect={(code) => lookupBarcode(code)}
+      />
     </div>
   );
 }
