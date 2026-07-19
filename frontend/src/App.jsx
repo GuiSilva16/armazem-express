@@ -27,6 +27,7 @@ import PaymentCancel from './pages/PaymentCancel';
 import PublicTracking from './pages/PublicTracking';
 import ProductResolver from './pages/ProductResolver';
 import ResetPassword from './pages/ResetPassword';
+import DeliveriesMap from './pages/DeliveriesMap';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -74,6 +75,7 @@ export default function App() {
         <Route path="suppliers" element={<Suppliers />} />
         <Route path="purchasing" element={<Purchasing />} />
         <Route path="tracking" element={<Tracking />} />
+        <Route path="map" element={<DeliveriesMap />} />
         <Route path="scanner" element={<FeatureGate feature="qr_scanner"><QrScanner /></FeatureGate>} />
         <Route path="team" element={<Team />} />
         <Route path="activity" element={<FeatureGate feature="activity_log"><Activity /></FeatureGate>} />

@@ -1,4 +1,5 @@
 import express from 'express';
+import db from '../database/db.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -43,6 +44,52 @@ router.get('/postal/:cp', authenticate, async (req, res) => {
   } catch (e) {
     console.error('Erro no lookup de código postal:', e.message);
     res.status(500).json({ error: 'Erro ao consultar o código postal' });
+  }
+});
+
+/**
+ * GET /api/utils/deliveries-map
+ * Devolve as encomendas da empresa com coordenadas (geocodificadas a partir do
+ * código postal via GeoAPI.pt) para desenhar no mapa. Fonte: GeoAPI.pt + OpenStreetMap
+ */
+router.get('/deliveries-map', authenticate, async (req, res) => {
+  try {
+    const orders = db
+      .prepare(
+        `SELECT id, tracking_number, recipient_name, recipient_city,
+                recipient_postal_code, status, created_at
+           FROM orders
+          WHERE company_id = ?
+          ORDER BY created_at DESC
+          LIMIT 200`
+      )
+      .all(req.user.company_id);
+
+    // Geocodifica cada código postal (com cache; CPs repetidos não repetem chamadas)
+    const points = [];
+    for (const o of orders) {
+      const cp = (o.recipient_postal_code || '').trim();
+      if (!/^\d{4}-\d{3}$/.test(cp)) continue;
+      let geo = null;
+      try {
+        geo = await lookupCP(cp);
+      } catch { /* ignora CP que falhe */ }
+      if (!geo || geo.lat == null || geo.lng == null) continue;
+      points.push({
+        id: o.id,
+        tracking_number: o.tracking_number,
+        recipient_name: o.recipient_name,
+        city: o.recipient_city || geo.city,
+        status: o.status,
+        created_at: o.created_at,
+        lat: geo.lat,
+        lng: geo.lng
+      });
+    }
+    res.json(points);
+  } catch (e) {
+    console.error('Erro no mapa de entregas:', e.message);
+    res.status(500).json({ error: 'Erro ao gerar o mapa de entregas' });
   }
 });
 

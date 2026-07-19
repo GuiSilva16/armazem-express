@@ -24,7 +24,8 @@ import {
   Lock,
   BarChart3,
   Factory,
-  ClipboardList
+  ClipboardList,
+  Map as MapIcon
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import Logo from './Logo';
@@ -45,6 +46,7 @@ const navItems = [
   { to: '/app/orders/new', icon: Send, label: 'Enviar' },
   { to: '/app/reports', icon: BarChart3, label: 'Relatórios' },
   { to: '/app/tracking', icon: Search, label: 'Tracking' },
+  { to: '/app/map', icon: MapIcon, label: 'Mapa' },
   { to: '/app/scanner', icon: QrCode, label: 'QR Scanner', feature: 'qr_scanner' }
 ];
 
